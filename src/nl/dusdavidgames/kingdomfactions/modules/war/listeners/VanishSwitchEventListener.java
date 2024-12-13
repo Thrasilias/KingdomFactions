@@ -9,71 +9,60 @@ import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFact
 import nl.dusdavidgames.kingdomfactions.modules.war.War;
 import nl.dusdavidgames.kingdomfactions.modules.war.WarModule;
 
-public class VanishSwitchEventListener implements Listener{
-	
-	
-	@EventHandler
-	public void onVanishSwitch(VanishStatusChangeEvent e) {
-		if(!WarModule.getInstance().isWarActive()) return;
-	if(e.isVanishing()) {	
-		War war = WarModule.getInstance().getWar();
-		KingdomFactionsPlayer p = PlayerModule.getInstance().getPlayer(e.getPlayer());
-		switch (p.getKingdom().getType()) {
-		case ADAMANTIUM:
-			war.getAdamantiumSoldiers().remove(p);
-			break;
-		case DOK:
-			war.getDokSoldiers().remove(p);
-			break;
-		case EREDON:
-			war.getEredonSoldiers().remove(p);
-			break;
-		case GEEN:
-			break;
-		case HYVAR:
-			war.getHyvarSoldiers().remove(p);
-			break;
-		case MALZAN:
-			war.getMalzanSoldiers().remove(p);
-			break;
-		case TILIFIA:
-			war.getTilfiaSoldiers().remove(p);
-			break;
-		default:
-			break;
+public class VanishSwitchEventListener implements Listener {
 
-		}
-		war.getTotalSoldiers().remove(p);
-	} else {
-		War war = WarModule.getInstance().getWar();
-		KingdomFactionsPlayer p = PlayerModule.getInstance().getPlayer(e.getPlayer());
-		switch (p.getKingdom().getType()) {
-		case ADAMANTIUM:
-			war.getAdamantiumSoldiers().add(p);
-			break;
-		case DOK:
-			war.getDokSoldiers().add(p);
-			break;
-		case EREDON:
-			war.getEredonSoldiers().add(p);
-			break;
-		case GEEN:
-			break;
-		case HYVAR:
-			war.getHyvarSoldiers().add(p);
-			break;
-		case MALZAN:
-			war.getMalzanSoldiers().add(p);
-			break;
-		case TILIFIA:
-			war.getTilfiaSoldiers().add(p);
-			break;
-		default:
-			break;
+    @EventHandler
+    public void onVanishSwitch(VanishStatusChangeEvent e) {
+        if (!WarModule.getInstance().isWarActive()) return;
 
-		}
-		war.getTotalSoldiers().add(p);
-	}
-	}
+        KingdomFactionsPlayer player = PlayerModule.getInstance().getPlayer(e.getPlayer());
+        if (player == null) return; // Check if player is valid
 
+        War war = WarModule.getInstance().getWar();
+        boolean isVanishing = e.isVanishing();
+
+        // Remove or add the player to the appropriate kingdom's soldier list
+        modifySoldierList(war, player, isVanishing);
+    }
+
+    private void modifySoldierList(War war, KingdomFactionsPlayer player, boolean isVanishing) {
+        // Based on the player's kingdom, add or remove them from the war soldiers list
+        switch (player.getKingdom().getType()) {
+            case ADAMANTIUM:
+                if (isVanishing) war.getAdamantiumSoldiers().remove(player);
+                else war.getAdamantiumSoldiers().add(player);
+                break;
+            case DOK:
+                if (isVanishing) war.getDokSoldiers().remove(player);
+                else war.getDokSoldiers().add(player);
+                break;
+            case EREDON:
+                if (isVanishing) war.getEredonSoldiers().remove(player);
+                else war.getEredonSoldiers().add(player);
+                break;
+            case GEEN:
+                break; // No action needed for 'GEEN'
+            case HYVAR:
+                if (isVanishing) war.getHyvarSoldiers().remove(player);
+                else war.getHyvarSoldiers().add(player);
+                break;
+            case MALZAN:
+                if (isVanishing) war.getMalzanSoldiers().remove(player);
+                else war.getMalzanSoldiers().add(player);
+                break;
+            case TILIFIA:
+                if (isVanishing) war.getTilfiaSoldiers().remove(player);
+                else war.getTilfiaSoldiers().add(player);
+                break;
+            default:
+                break;
+        }
+
+        // Always remove or add the player to the total soldiers list
+        if (isVanishing) {
+            war.getTotalSoldiers().remove(player);
+        } else {
+            war.getTotalSoldiers().add(player);
+        }
+    }
 }

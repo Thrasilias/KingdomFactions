@@ -1,24 +1,34 @@
-Kingdom Factions - KDF
-======================
-Dit is de officiele versie van KDF zoals deze werd gebruikt bij de DusDavidGames Server
+# Kingdom Factions - KDF
 
-Waarom open source?
--------------------
-We willen graag met de community delen hoe wij te werk gaan en hopelijk Java devs interesseren in solliciteren bij ons als developer!
+This is the official version of KDF as used on the **DusDavidGames** server.
 
-Waar kan ik solliciteren?
--------------------------
-Intresse om in teamverband mooie dingen te maken voor de server? Wil jij leren van anderen om zelf nog beter te worden? Solliciteer dan snel [hier](http://ddg.fyi/devs) !
+---
 
-Gaan er nog updates komen?
---------------------------
-Nee, deze code is `as is` maar voel je vrij om een fork te maken en er verder mee te werken. Respecteer daarbij wel de GPLv3 license!
+## Why Open Source?
 
-Hoe build ik deze plugin?
---------------------------
-Om deze plugin te builden moet je [Maven](https://maven.apache.org/) correct geinstalleerd hebben!
-Voordat je de plugin kan builden moet je [BuildTools](https://www.spigotmc.org/threads/buildtools-updates-information.42865/) gerund hebben! Om de plugin te builden type je het volgende commando in een command line
-Op windows kan dit via cmd of via [GitBash](https://git-for-windows.github.io/)
-`mvn clean package -U`
+We want to share our development process with the community and, hopefully, inspire Java developers to apply and join our team!
 
+---
 
+## How Can I Apply?
+
+Interested in creating amazing things for the server as part of a team? Want to learn from others and improve your skills? Then apply now [here](http://ddg.fyi/devs)!
+
+---
+
+## Will There Be Any Future Updates?
+
+No, this code is provided **"as-is"**, but feel free to fork it and continue development. Just remember to respect the **GPLv3** license!
+
+---
+
+## How Do I Build This Plugin?
+
+To build this plugin, you need to have [Maven](https://maven.apache.org/) installed correctly.
+
+Before you can build the plugin, make sure to run [BuildTools](https://www.spigotmc.org/threads/buildtools-updates-information.42865/). Once BuildTools is set up, run the following command in your command line:
+
+On Windows, you can use `cmd` or [Git Bash](https://git-for-windows.github.io/):
+
+```bash
+mvn clean package -U

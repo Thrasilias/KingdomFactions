@@ -18,146 +18,84 @@ import nl.dusdavidgames.kingdomfactions.modules.kingdom.kingdom.KingdomType;
 
 public class Item {
 
-	private static @Getter @Setter Item instance;
+    private static @Getter @Setter Item instance;
 
-	public Item() {
-		setInstance(this);
-	}
+    public Item() {
+        setInstance(this);
+    }
 
-	public ItemStack getItem(Material m, String name, int amount) {
-		ItemStack i = new ItemStack(m, amount);
-		ItemMeta im = i.getItemMeta();
-		im.setDisplayName(name);
-		i.setItemMeta(im);
-		return i;
-	}
+    // Generic method to create ItemStack
+    public ItemStack getItem(Material material, String name, int amount, List<String> lore, HashMap<Enchantment, Integer> enchantments, boolean hideEnchantments) {
+        ItemStack item = new ItemStack(material, amount);
+        ItemMeta itemMeta = item.getItemMeta();
 
-	public ItemStack getItem(Material m, String name, int amount, ArrayList<String> lore) {
-		ItemStack i = new ItemStack(m, amount);
-		ItemMeta im = i.getItemMeta();
-		im.setDisplayName(name);
-		im.setLore(lore);
-		i.setItemMeta(im);
-		return i;
-	}
+        if (itemMeta != null) {
+            itemMeta.setDisplayName(name);
+            if (lore != null) itemMeta.setLore(lore);
+            enchantments.forEach((enchantment, level) -> itemMeta.addEnchant(enchantment, level, true));
 
-	public ItemStack getItem(Material m, String name, int amount, ArrayList<String> lore, Enchantment e,
-			int enchLevel) {
-		ItemStack i = new ItemStack(m, amount);
-		ItemMeta im = i.getItemMeta();
-		im.setDisplayName(name);
-		im.setLore(lore);
-		i.setItemMeta(im);
-		i.addEnchantment(e, enchLevel);
-		return i;
-	}
+            if (hideEnchantments) {
+                itemMeta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            }
 
-	public ItemStack getItem(Material m, String name, int amount, Enchantment e, int enchLevel,
-			boolean showEnchantments) {
-		ItemStack i = new ItemStack(m, amount);
-		ItemMeta im = i.getItemMeta();
-		im.addEnchant(e, enchLevel, true);
-		if (!showEnchantments) {
-			im.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-		}
-		im.setDisplayName(name);
-		i.setItemMeta(im);
-		return i;
-	}
+            item.setItemMeta(itemMeta);
+        }
 
-	public ItemStack getItem(Material m, String name, int amount, Enchantment e, int enchLevel,
-			boolean showEnchantments, List<String> lore) {
-		ItemStack i = new ItemStack(m, amount);
-		ItemMeta im = i.getItemMeta();
-		im.addEnchant(e, enchLevel, true);
-		im.setLore(lore);
-		if (!showEnchantments) {
-			im.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-		}
-		im.setDisplayName(name);
-		i.setItemMeta(im);
-		return i;
-	}
+        return item;
+    }
 
-	public ItemStack getItem(Material m, String name, int amount, int in) {
-		ItemStack i = new ItemStack(m, amount, (short) in);
-		ItemMeta im = i.getItemMeta();
-		im.setDisplayName(name);
-		i.setItemMeta(im);
-		return i;
-	}
+    // Overloaded method for convenience
+    public ItemStack getItem(Material material, String name, int amount) {
+        return getItem(material, name, amount, null, new HashMap<>(), false);
+    }
 
-	public ItemStack getItem(Material m, String name, int amount, ArrayList<String> lore, int in) {
-		ItemStack i = new ItemStack(m, amount, (short) in);
-		ItemMeta im = i.getItemMeta();
-		im.setDisplayName(name);
-		im.setLore(lore);
-		i.setItemMeta(im);
-		return i;
-	}
+    // Overloaded method for adding enchantments
+    public ItemStack getItem(Material material, String name, int amount, Enchantment enchantment, int level) {
+        HashMap<Enchantment, Integer> enchantments = new HashMap<>();
+        enchantments.put(enchantment, level);
+        return getItem(material, name, amount, null, enchantments, false);
+    }
 
-	public ItemStack getItem(Material m, String name, int amount, ArrayList<String> lore, Enchantment e, int enchLevel,
-			int in) {
-		ItemStack i = new ItemStack(m, amount, (short) in);
-		ItemMeta im = i.getItemMeta();
-		im.setDisplayName(name);
-		im.setLore(lore);
-		i.setItemMeta(im);
-		i.addEnchantment(e, enchLevel);
-		return i;
-	}
+    // Special method for KingdomType glass panes
+    public void setPane(KingdomType type, int slot, Inventory inventory) {
+        Material material = Material.STAINED_GLASS_PANE; // Update to a newer material if needed
+        String name = "";
+        ChatColor color = ChatColor.GRAY;
 
-	public ItemStack getItem(Material m, String name, int amount, Enchantment e, int enchLevel,
-			boolean showEnchantments, int in) {
-		ItemStack i = new ItemStack(m, amount, (short) in);
-		ItemMeta im = i.getItemMeta();
-		im.addEnchant(e, enchLevel, true);
-		if (!showEnchantments) {
-			im.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-		}
-		im.setDisplayName(name);
-		i.setItemMeta(im);
-		return i;
-	}
-	public ItemStack getItem(Material m, String name, int amount, HashMap<Enchantment, Integer> enchantments, boolean showEnchantments) {
-		ItemStack i = new ItemStack(m, amount);
-		ItemMeta im = i.getItemMeta();
-		for(Enchantment e : enchantments.keySet()) {
-			im.addEnchant(e, enchantments.get(e), true);
-		}
-		if (!showEnchantments) {
-			im.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-		}
-		im.setDisplayName(name);
-		i.setItemMeta(im);
-		return i;
-	}
-   
-	public void setPane(KingdomType type, int i, Inventory in) {
-	 switch(type) {
-	case ADAMANTIUM:
-		in.setItem(i, getItem(Material.STAINED_GLASS_PANE, ChatColor.DARK_RED + "A" + ChatColor.DARK_GRAY + "damantium", 1, GlassColor.GRAY));
-		break;
-	case DOK:
-		in.setItem(i, getItem(Material.STAINED_GLASS_PANE, ChatColor.DARK_PURPLE + "Dok", 1, GlassColor.PURPLE));
-		break;
-	case EREDON:
-		in.setItem(i, getItem(Material.STAINED_GLASS_PANE, ChatColor.AQUA + "Eredon", 1, GlassColor.LIGHT_BLUE));
-		break;
-	case HYVAR:
-		in.setItem(i, getItem(Material.STAINED_GLASS_PANE, ChatColor.GOLD + "Hyvar", 1, GlassColor.ORANGE));
-		break;
-	case MALZAN:
-		in.setItem(i, getItem(Material.STAINED_GLASS_PANE, ChatColor.YELLOW + "Malzan", 1, GlassColor.YELLOW));
-		break;
-	case TILIFIA:
-		in.setItem(i, getItem(Material.STAINED_GLASS_PANE, ChatColor.DARK_GREEN + "Tilifia", 1, GlassColor.GREEN));
-		break;
-	case GEEN:
-		in.setItem(i, getItem(Material.STAINED_GLASS_PANE, ChatColor.RED + "Random", 1, GlassColor.RED));
-	default:
-		break;
-	 
-	 }
-	}
+        switch (type) {
+            case ADAMANTIUM:
+                name = ChatColor.DARK_RED + "A" + ChatColor.DARK_GRAY + "damantium";
+                color = ChatColor.GRAY;
+                break;
+            case DOK:
+                name = ChatColor.DARK_PURPLE + "Dok";
+                color = ChatColor.PURPLE;
+                break;
+            case EREDON:
+                name = ChatColor.AQUA + "Eredon";
+                color = ChatColor.LIGHT_BLUE;
+                break;
+            case HYVAR:
+                name = ChatColor.GOLD + "Hyvar";
+                color = ChatColor.ORANGE;
+                break;
+            case MALZAN:
+                name = ChatColor.YELLOW + "Malzan";
+                color = ChatColor.YELLOW;
+                break;
+            case TILIFIA:
+                name = ChatColor.DARK_GREEN + "Tilifia";
+                color = ChatColor.GREEN;
+                break;
+            case GEEN:
+                name = ChatColor.RED + "Random";
+                color = ChatColor.RED;
+                break;
+            default:
+                break;
+        }
+
+        ItemStack pane = getItem(material, name, 1, color, false); // Color logic can be customized as needed
+        inventory.setItem(slot, pane);
+    }
 }

@@ -36,29 +36,42 @@ public class TeleportationAction implements IAction {
         return player;
     }
 
+    /**
+     * Executes the teleportation action, moving the player to the destination location.
+     */
     public void execute() throws KingdomFactionsException {
-        getPlayer().sendActionbar(ChatColor.RED + "Teleporteren...");
+        getPlayer().sendActionbar(ChatColor.RED + "Teleporting...");
         getPlayer().teleport(location);
-        cancel();
+        cancel(); // Ensure that the teleport action is canceled after execution
     }
 
-    public void notifyPlayerOnMovement() {
+    /**
+     * Checks if the player moved, and if so, cancels the teleport action.
+     */
+    public void cancelTeleportIfMoved() {
         if (!shouldCancelOnMove()) {
             return;
         }
-        getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Je bewoog! De actie is geannuleerd.");
+        getPlayer().sendMessage(Messages.getInstance().getPrefix() + "You moved! The teleportation has been canceled.");
         cancel();
     }
 
+    /**
+     * Updates the player with the remaining time until teleportation.
+     */
     public void notifyPlayerOnDelayChange() {
-        getPlayer().sendActionbar(ChatColor.RED + "Je teleporteert over " + this.delay + " seconde(n)!");
+        getPlayer().sendActionbar(ChatColor.RED + "Teleportation in " + this.delay + " second(s)!");
     }
 
+    /**
+     * Handles the delay countdown and executes the teleportation when time is up.
+     */
     public void handleDelayChange() {
         if (delay <= 1) {
             try {
                 execute();
             } catch (KingdomFactionsException e) {
+                Logger.ERROR.log("Error executing teleportation for player: " + getPlayer().getName());
                 e.printStackTrace();
             }
         } else {
@@ -67,4 +80,10 @@ public class TeleportationAction implements IAction {
         }
     }
 
+    /**
+     * Cancels the teleportation action.
+     */
+    private void cancel() {
+        // Any cancel logic, if required, can go here.
+    }
 }

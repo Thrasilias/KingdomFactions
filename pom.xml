@@ -23,8 +23,8 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
             <configuration>
-               <source>1.8</source>
-               <target>1.8</target>
+               <source>17</source> <!-- Or the version you are using -->
+               <target>17</target>
             </configuration>
          </plugin>
          <plugin>
@@ -47,8 +47,8 @@
 
    <repositories>
       <repository>
-         <id>sk89q-repo</id>
-         <url>http://maven.sk89q.com/artifactory/repo/</url>
+         <id>spigotmc-repo</id>
+         <url>https://hub.spigotmc.org/nexus/content/repositories/public/</url>
       </repository>
       <repository>
          <id>kitteh-repo</id>
@@ -64,39 +64,38 @@
       <dependency>
          <groupId>org.spigotmc</groupId>
          <artifactId>spigot</artifactId>
-         <version>1.9.4-R0.1-SNAPSHOT</version>
+         <version>1.20.4-R0.1-SNAPSHOT</version>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>com.sk89q</groupId>
          <artifactId>worldedit</artifactId>
-         <version>5.5.8</version>
+         <version>7.2.9</version>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>us.dynmap</groupId>
          <artifactId>dynmap-api</artifactId>
-         <version>2.4-SNAPSHOT</version>
+         <version>3.0-SNAPSHOT</version>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>org.projectlombok</groupId>
          <artifactId>lombok</artifactId>
-         <version>1.16.8</version>
+         <version>1.18.24</version>
          <scope>provided</scope>
       </dependency>
       <dependency>
          <groupId>com.zaxxer</groupId>
          <artifactId>HikariCP</artifactId>
-         <version>2.4.3</version>
+         <version>5.0.1</version>
          <scope>compile</scope>
       </dependency>
       <dependency>
          <groupId>org.kitteh</groupId>
          <artifactId>VanishNoPacket</artifactId>
-         <version>3.9</version>
+         <version>4.0</version>
          <scope>provided</scope>
       </dependency>
    </dependencies>
-
 </project>

@@ -2,13 +2,15 @@ package nl.dusdavidgames.kingdomfactions.modules.utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Iterator;
+import java.util.UUID;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
@@ -17,84 +19,108 @@ import lombok.Setter;
 import nl.dusdavidgames.kingdomfactions.modules.utils.logger.Logger;
 
 public class NameHistory {
-	private static @Getter @Setter NameHistory instance;
 
-	public NameHistory() {
-		setInstance(this);
-	}
+    private static @Getter @Setter NameHistory instance;
 
-	public String getUUID(String playername) throws IOException {
-		String str = "";
-		URL url = new URL("https://api.mojang.com/users/profiles/minecraft/" + playername);
-		BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
-		if ((str = in.readLine()) != null) {
-			if (str.contains("{\"id\":")) {
-				String uuid = str.toLowerCase().replace("{\"id\":", "").replace("\"", "").replace(",", "")
-						.replace("legacy:true", "").replace("name:" + playername.toLowerCase() + "}", "");
-				return uuid.substring(0, 8) + "-" + uuid.substring(8, 12) + "-" + uuid.substring(12, 16) + "-"
-						+ uuid.substring(16, 20) + "-" + uuid.substring(20, 32);
-			}
-		}
-		return str;
-	}
+    public NameHistory() {
+        setInstance(this);
+    }
 
-	public ArrayList<String> getNames(String playername) throws IOException {
-		String str = getPrevNames(playername);
-		if (str == null) {
-			Logger.WARNING.log("No name history was found");
-		}
-		Iterator<JsonElement> iter = (new JsonParser()).parse(str).getAsJsonArray().iterator();
-		ArrayList<String> names = new ArrayList<String>();
-		while (iter.hasNext()) {
-			names.add(iter.next().getAsJsonObject().get("name").getAsString().concat("\n"));
-		}
-		return names;
-	}
+    /**
+     * Get the UUID of a player by their username.
+     * @param playername Minecraft player's name.
+     * @return The player's UUID as a string.
+     * @throws IOException If there is an error fetching data from the API.
+     */
+    public String getUUID(String playername) throws IOException {
+        String urlStr = "https://api.mojang.com/users/profiles/minecraft/" + playername;
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(new URL(urlStr).openStream()))) {
+            String response = in.readLine();
+            if (response != null && response.contains("{\"id\":")) {
+                String uuid = response.toLowerCase()
+                        .replace("{\"id\":", "")
+                        .replace("\"", "")
+                        .replace(",", "")
+                        .replace("legacy:true", "")
+                        .replace("name:" + playername.toLowerCase() + "}", "");
+                return formatUUID(uuid);
+            }
+        }
+        return null; // Return null if not found
+    }
 
-	/**
-	 * 
-	 * @param playername
-	 * @return previous names
-	 * @throws IOException
-	 */
-	public String getPrevNames(String playername) throws IOException {
-		String target = String.format("https://api.mojang.com/user/profiles/%s/names",
-				getUUID(playername).toString().replace("-", ""));
-		String r = null;
+    /**
+     * Format a UUID string into the standard 8-4-4-4-12 format.
+     * @param uuid The raw UUID string.
+     * @return The formatted UUID string.
+     */
+    private String formatUUID(String uuid) {
+        return uuid.substring(0, 8) + "-" + uuid.substring(8, 12) + "-" + uuid.substring(12, 16) + "-"
+                + uuid.substring(16, 20) + "-" + uuid.substring(20, 32);
+    }
 
-		HttpURLConnection connection = null;
-		try {
-			URL url = new URL(target);
-			connection = (HttpURLConnection) url.openConnection();
-			connection.setRequestMethod("GET");
+    /**
+     * Get the list of previous names for a player.
+     * @param playername Minecraft player's name.
+     * @return A list of previous player names.
+     * @throws IOException If there is an error fetching data from the API.
+     */
+    public List<String> getNames(String playername) throws IOException {
+        String str = getPrevNames(playername);
+        if (str == null) {
+            Logger.WARNING.log("No name history found for player: " + playername);
+            return new ArrayList<>(); // Return empty list if no names found
+        }
 
-			connection.setUseCaches(false);
-			connection.setDoOutput(true);
+        JsonArray jsonArray = JsonParser.parseString(str).getAsJsonArray();
+        List<String> names = new ArrayList<>();
+        for (JsonElement element : jsonArray) {
+            names.add(element.getAsJsonObject().get("name").getAsString());
+        }
+        return names;
+    }
 
-			connection.connect();
+    /**
+     * Get the full name history of a player.
+     * @param playername Minecraft player's name.
+     * @return The raw JSON response from Mojang's API containing name history.
+     * @throws IOException If there is an error fetching data from the API.
+     */
+    public String getPrevNames(String playername) throws IOException {
+        String uuid = getUUID(playername);
+        if (uuid == null) {
+            return null;
+        }
 
-			if (connection.getResponseCode() != 200) {
-				return null;
-			}
+        String target = String.format("https://api.mojang.com/user/profiles/%s/names", uuid.replace("-", ""));
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(target).openConnection();
+            connection.setRequestMethod("GET");
+            connection.setUseCaches(false);
+            connection.setDoOutput(true);
+            connection.connect();
 
-			InputStream is = connection.getInputStream();
-			BufferedReader rd = new BufferedReader(new InputStreamReader(is));
-			StringBuilder response = new StringBuilder();
-			String line;
-			while ((line = rd.readLine()) != null) {
-				response.append(line);
-				response.append('\r').append('\n');
-			}
-			rd.close();
+            if (connection.getResponseCode() != 200) {
+                Logger.WARNING.log("Failed to fetch name history for UUID: " + uuid);
+                return null;
+            }
 
-			r = response.toString();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (connection != null) {
-				connection.disconnect();
-			}
-		}
-		return r;
-	}
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line).append('\n');
+                }
+                return response.toString();
+            }
+        } catch (IOException e) {
+            Logger.ERROR.log("Error fetching name history: " + e.getMessage());
+            throw e; // Re-throw the exception after logging
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
 }

@@ -1,8 +1,16 @@
 package nl.dusdavidgames.kingdomfactions.modules.utils;
 
-public class CooldownType {
+public enum CooldownType {
+    WAND("cooldown.wand"),
+    CHAT("cooldown.chat");
 
-	
-	public final static String WAND = "cooldown.wand";
-	public final static String CHAT = "cooldown.chat";
+    private final String cooldownKey;
+
+    CooldownType(String cooldownKey) {
+        this.cooldownKey = cooldownKey;
+    }
+
+    public String getCooldownKey() {
+        return cooldownKey;
+    }
 }

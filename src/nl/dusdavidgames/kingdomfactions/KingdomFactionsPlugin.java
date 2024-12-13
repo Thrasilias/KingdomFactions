@@ -1,7 +1,6 @@
 package nl.dusdavidgames.kingdomfactions;
 
 import java.util.Random;
-
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -11,7 +10,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
-
 import lombok.Getter;
 import lombok.Setter;
 import nl.dusdavidgames.kingdomfactions.modules.chat.ChatModule;
@@ -48,134 +46,134 @@ import nl.dusdavidgames.kingdomfactions.modules.wreckingball.WreckingBallModule;
 
 public class KingdomFactionsPlugin extends JavaPlugin {
 
-	private static @Getter @Setter KingdomFactionsPlugin instance;
+    private static @Getter @Setter KingdomFactionsPlugin instance;
 
-	public void onEnable() {
-		this.loadMS = System.currentTimeMillis();
-		setInstance(this);
+    private long loadMS;
+    private @Getter DataManager dataManager;
+    private @Getter MainPlayerRunnable taskManager;
+    private int tps = 0;
+    private long second = 0;
 
-		this.initTps();
-		this.dataManager = new DataManager(new DataList());
-		new UtilsModule();
-		new ConfigModule();
-		this.initWorlds();
-		Logger.INFO.log("Starting The Kingdom Factions v" + this.getDescription().getVersion() + " by "
-				+ this.getDescription().getAuthors().toString().replace("[", "").replace("]", ""));
-		new DatabaseModule();
-		new CommandModule();
-		new KingdomModule();
-		new PlayerModule();
-		new NexusModule();
-		new FactionModule();
-		new MineModule();
-		new TimeModule();
-		new ChatModule();
-		new CoinsModule();
-		new InfluenceModule();
-		new ScoreboardModule();
-		new EmpireWandModule();
-		new WarModule();
-		new PermissionModule();
-        new MemLeakModule();
-		// new DynmapModule();
-		// new ViewDistanceModule();
+    @Override
+    public void onEnable() {
+        this.loadMS = System.currentTimeMillis();
+        setInstance(this);
+
+        // Initialize modules and worlds
+        initializeModules();
+        initWorlds();
+
+        Logger.INFO.log("Starting Kingdom Factions v" + getDescription().getVersion() + " by " 
+            + String.join(", ", getDescription().getAuthors()));
+
+        // Log startup time
+        Logger.INFO.log("Kingdom Factions started! Took " + (System.currentTimeMillis() - loadMS) + " ms!");
+    }
+
+    private void initializeModules() {
+        this.dataManager = new DataManager(new DataList());
+        new UtilsModule();
+        new ConfigModule();
+        initializeModuleList();
         this.taskManager = new MainPlayerRunnable();
-		new ShopsModule();
-		new WreckingBallModule();
-		new CombatModule();
-		new SettingsModule();
+    }
 
-		Logger.INFO.log("Started The Kingdom Factions! Took " + (System.currentTimeMillis() - loadMS) + " ms!");
-	}
+    private void initializeModuleList() {
+        new DatabaseModule();
+        new CommandModule();
+        new KingdomModule();
+        new PlayerModule();
+        new NexusModule();
+        new FactionModule();
+        new MineModule();
+        new TimeModule();
+        new ChatModule();
+        new CoinsModule();
+        new InfluenceModule();
+        new ScoreboardModule();
+        new EmpireWandModule();
+        new WarModule();
+        new PermissionModule();
+        new MemLeakModule();
+        new ShopsModule();
+        new WreckingBallModule();
+        new CombatModule();
+        new SettingsModule();
+    }
 
-	private long loadMS;
-	private @Getter DataManager dataManager;
+    private void initWorlds() {
+        try {
+            String overworld = KingdomFactionsPlugin.getInstance().getDataManager().getString("worlds.overworld");
+            String miningworld = KingdomFactionsPlugin.getInstance().getDataManager().getString("worlds.miningworld");
 
-	
-	private @Getter MainPlayerRunnable taskManager;
-	
-	
-	@Override
-	public void onDisable() {
+            if (Utils.getInstance().getOverWorld() == null) {
+                createWorld(overworld);
+            }
+            if (Utils.getInstance().getMiningWorld() == null) {
+                createWorld(miningworld);
+            }
+        } catch (DataException e) {
+            e.printStackTrace();
+        }
+    }
 
-		ShopLogger.getInstance().disable();
+    private void createWorld(String worldName) {
+        WorldCreator creator = new WorldCreator(worldName);
+        creator.environment(World.Environment.NORMAL);
+        creator.type(WorldType.NORMAL);
+        creator.seed(new Random().nextLong());
+        creator.generateStructures(true);
+        Bukkit.createWorld(creator);
+    }
 
-		for (Entity e : Utils.getInstance().getOverWorld().getEntities()) {
-			if (e instanceof LivingEntity) {
-				if (MonsterModule.getInstance().getGuard((LivingEntity) e) != null) {
-					MonsterModule.getInstance().getGuard((LivingEntity) e).kill();
-				}
-			}
-		}
-		MySQLModule.getInstance().closeConnection();
-	}
+    @Override
+    public void onDisable() {
+        // Disable shop logger
+        ShopLogger.getInstance().disable();
 
-	public void registerListener(Listener l) {
-		Bukkit.getPluginManager().registerEvents(l, this);
+        // Clean up living entities (guards)
+        for (Entity e : Utils.getInstance().getOverWorld().getEntities()) {
+            if (e instanceof LivingEntity) {
+                if (MonsterModule.getInstance().getGuard((LivingEntity) e) != null) {
+                    MonsterModule.getInstance().getGuard((LivingEntity) e).kill();
+                }
+            }
+        }
 
-	}
-	
+        // Close MySQL connection
+        MySQLModule.getInstance().closeConnection();
+    }
 
-	public void registerCommand(String command, CommandExecutor c) {
-		this.getCommand(command).setExecutor(c);
+    public void registerListener(Listener l) {
+        Bukkit.getPluginManager().registerEvents(l, this);
+    }
 
-	}
+    public void registerCommand(String command, CommandExecutor c) {
+        this.getCommand(command).setExecutor(c);
+    }
 
-	private void initWorlds() {
-		try {
-			String overworld = KingdomFactionsPlugin.getInstance().getDataManager().getString("worlds.overworld");
-			String miningworld = KingdomFactionsPlugin.getInstance().getDataManager().getString("worlds.miningworld");
-			if (Utils.getInstance().getOverWorld() == null) {
-				WorldCreator creator = new WorldCreator(overworld);
-				creator.environment(World.Environment.NORMAL);
-				creator.type(WorldType.NORMAL);
-				creator.seed(new Random().nextLong());
-				creator.generateStructures(true);
-				Bukkit.createWorld(creator);
-			}
-			if (Utils.getInstance().getMiningWorld() == null) {
-				WorldCreator creator = new WorldCreator(miningworld);
-				creator.environment(World.Environment.NORMAL);
-				creator.type(WorldType.NORMAL);
-				creator.seed(new Random().nextLong());
-				creator.generateStructures(true);
-				Bukkit.createWorld(creator);
-			}
-		} catch (DataException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+    // Initialize and calculate TPS
+    private void initTps() {
+        getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
+            long sec;
+            int ticks;
 
-	public int getTPS() {
-		return tps;
-	}
+            @Override
+            public void run() {
+                sec = (System.currentTimeMillis() / 1000);
 
-	private int tps = 0;
-	private long second = 0;
+                if (second == sec) {
+                    ticks++;
+                } else {
+                    second = sec;
+                    tps = (tps == 0 ? ticks : ((tps + ticks) / 2));
+                    ticks = 0;
+                }
+            }
+        }, 20, 1);
+    }
 
-	private void initTps() {
-		getServer().getScheduler().scheduleSyncRepeatingTask(this, new Runnable() {
-			long sec;
-			int ticks;
-
-			@Override
-			public void run() {
-				sec = (System.currentTimeMillis() / 1000);
-
-				if (second == sec) {
-					ticks++;
-				} else {
-					second = sec;
-					tps = (tps == 0 ? ticks : ((tps + ticks) / 2));
-					ticks = 0;
-				}
-			}
-		}, 20, 1);
-	}
-	
-	
-	
-	
-	
+    public int getTPS() {
+        return tps;
+    }
 }

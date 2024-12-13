@@ -16,129 +16,108 @@ import nl.dusdavidgames.kingdomfactions.modules.war.event.WarStopEvent;
 
 public @Data class War {
 
-	private WarState warState = WarState.NOWAR;
-	private PlayerList totalSoldiers = new PlayerList();
-	private PlayerList malzanSoldiers = new PlayerList();
-	private PlayerList eredonSoldiers = new PlayerList();
-	private PlayerList adamantiumSoldiers = new PlayerList();
-	private PlayerList hyvarSoldiers = new PlayerList();
-	private PlayerList tilfiaSoldiers = new PlayerList();
-	private PlayerList dokSoldiers = new PlayerList();
-	
-	private long time;
-	private long timeInMilliSeconds;
+    private WarState warState = WarState.NOWAR;
+    private final PlayerList totalSoldiers = new PlayerList();
+    private final PlayerList malzanSoldiers = new PlayerList();
+    private final PlayerList eredonSoldiers = new PlayerList();
+    private final PlayerList adamantiumSoldiers = new PlayerList();
+    private final PlayerList hyvarSoldiers = new PlayerList();
+    private final PlayerList tilfiaSoldiers = new PlayerList();
+    private final PlayerList dokSoldiers = new PlayerList();
 
-	public War(long time) {
-		this.time = time;
-		
-		long currentTime = System.currentTimeMillis();
-		long timeInMilliseconds = ((time * 60) * 1000);
-		this.timeInMilliSeconds = (currentTime + timeInMilliseconds);
-	}
-	
-	public String getRemainingTime(){
-		String time = "";
-		long timediff = timeInMilliSeconds - System.currentTimeMillis();
-		long timeInSeconds = timediff / 1000;
-		long minutes = ((timeInSeconds / 60) % 60);
-		long hours = ((timeInSeconds / 60 / 60) % 24);
-		
-		if(hours < 10)
-			time += "0";
-		
-		time += hours;
-		
-		time += ":";
-		
-		if(minutes < 10)
-			time += "0";
-		
-		time += minutes;
-		
-		return time;
-	}
+    private long time;
+    private long timeInMilliSeconds;
 
-	public void start() {
-		for (KingdomFactionsPlayer p : PlayerModule.getInstance().getPlayers()) {
-			switch (p.getKingdom().getType()) {
-			case ADAMANTIUM:
-				getAdamantiumSoldiers().add(p);
-				break;
-			case DOK:
-				getDokSoldiers().add(p);
-				break;
-			case EREDON:
-				getEredonSoldiers().add(p);
-				break;
-			case GEEN:
-				break;
-			case HYVAR:
-				getHyvarSoldiers().add(p);
-				break;
-			case MALZAN:
-				getMalzanSoldiers().add(p);
-				break;
-			case TILIFIA:
-				getTilfiaSoldiers().add(p);
-				break;
-			default:
-				break;
+    public War(long time) {
+        this.time = time;
+        long currentTime = System.currentTimeMillis();
+        this.timeInMilliSeconds = currentTime + ((time * 60) * 1000);
+    }
 
-			}
-			getTotalSoldiers().add(p);
-			p.sendTitle(ChatColor.DARK_RED + "Oorlog", ChatColor.RED + "Er is een oorlog begonnen!", 20, 20, 20);
-	
-		}
-     	setWarState(WarState.WAR);
-		Bukkit.getPluginManager().callEvent(new WarStartEvent());
-	}
+    /**
+     * Returns the remaining time in HH:mm:ss format.
+     */
+    public String getRemainingTime() {
+        long timediff = timeInMilliSeconds - System.currentTimeMillis();
+        long timeInSeconds = timediff / 1000;
+        long seconds = timeInSeconds % 60;
+        long minutes = (timeInSeconds / 60) % 60;
+        long hours = (timeInSeconds / 3600) % 24;
 
-	public void end() {
-		getAdamantiumSoldiers().clear();
-		getDokSoldiers().clear();
-		getEredonSoldiers().clear();
-		getHyvarSoldiers().clear();
-		getTilfiaSoldiers().clear();
-		getMalzanSoldiers().clear();
-		
-		for(KingdomFactionsPlayer p : PlayerModule.getInstance().getPlayers()) {
-			p.sendTitle(ChatColor.RED + "Oorlog", ChatColor.RED + "De oorlog is afgelopen!", 20, 40, 20);
-		}
-		WarModule.getInstance().setWar(null);
-		for(INexus n : NexusModule.getInstance().getNexuses()) {
-			if(!(n instanceof Nexus)) continue;
-			if(((Nexus) n).isProtected()) {
-			((Nexus) n).setProtected(false);
-			}
-		}
-		Bukkit.getPluginManager().callEvent(new WarStopEvent());
-	}
-	
-	
-	public PlayerList getSoldiers(Kingdom k) {
-		switch(k.getType()) {
-		case ADAMANTIUM:
-			return getAdamantiumSoldiers();
-		
-		case DOK:
-			return getDokSoldiers();
-	
-		case EREDON:
-			return getEredonSoldiers();
-	
-		case HYVAR:
-			return getHyvarSoldiers();
-		
-		case MALZAN:
-			return getMalzanSoldiers();
-		
-		case TILIFIA:
-			return getTilfiaSoldiers();
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    }
 
-		default:
-			return getTotalSoldiers();
-		
-		}
-	}
+    public void start() {
+        if (warState == WarState.WAR) {
+            // War is already active
+            return;
+        }
 
+        for (KingdomFactionsPlayer p : PlayerModule.getInstance().getPlayers()) {
+            Kingdom kingdom = p.getKingdom();
+            PlayerList soldiers = getSoldiers(kingdom);
+            soldiers.add(p);
+            p.sendTitle(ChatColor.DARK_RED + "Oorlog", ChatColor.RED + "Er is een oorlog begonnen!", 20, 20, 20);
+        }
+
+        setWarState(WarState.WAR);
+        Bukkit.getPluginManager().callEvent(new WarStartEvent());
+    }
+
+    public void end() {
+        clearSoldiers();
+        notifyEndOfWar();
+        WarModule.getInstance().setWar(null);
+        unprotectNexuses();
+        Bukkit.getPluginManager().callEvent(new WarStopEvent());
+    }
+
+    private void clearSoldiers() {
+        getAllSoldiers().forEach(PlayerList::clear);
+    }
+
+    private void notifyEndOfWar() {
+        for (KingdomFactionsPlayer p : PlayerModule.getInstance().getPlayers()) {
+            p.sendTitle(ChatColor.RED + "Oorlog", ChatColor.RED + "De oorlog is afgelopen!", 20, 40, 20);
+        }
+    }
+
+    private void unprotectNexuses() {
+        for (INexus nexus : NexusModule.getInstance().getNexuses()) {
+            if (nexus instanceof Nexus && ((Nexus) nexus).isProtected()) {
+                ((Nexus) nexus).setProtected(false);
+            }
+        }
+    }
+
+    /**
+     * Returns the list of soldiers for the given kingdom.
+     * If no kingdom matches, returns the list of total soldiers.
+     */
+    public PlayerList getSoldiers(Kingdom kingdom) {
+        switch (kingdom.getType()) {
+            case ADAMANTIUM: return adamantiumSoldiers;
+            case DOK: return dokSoldiers;
+            case EREDON: return eredonSoldiers;
+            case HYVAR: return hyvarSoldiers;
+            case MALZAN: return malzanSoldiers;
+            case TILIFIA: return tilfiaSoldiers;
+            default: return totalSoldiers;
+        }
+    }
+
+    /**
+     * Returns all soldiers across all kingdoms.
+     */
+    public PlayerList getAllSoldiers() {
+        PlayerList allSoldiers = new PlayerList();
+        allSoldiers.addAll(totalSoldiers);
+        allSoldiers.addAll(malzanSoldiers);
+        allSoldiers.addAll(eredonSoldiers);
+        allSoldiers.addAll(adamantiumSoldiers);
+        allSoldiers.addAll(hyvarSoldiers);
+        allSoldiers.addAll(tilfiaSoldiers);
+        allSoldiers.addAll(dokSoldiers);
+        return allSoldiers;
+    }
 }
