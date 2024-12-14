@@ -7,35 +7,53 @@ import lombok.Setter;
 import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFactionsPlayer;
 
 public class TimeHelper {
+    
     private static @Getter @Setter TimeHelper instance;
-	public TimeHelper() {
-		setInstance(this);
-	}
-	
-	public void updateTime(KingdomFactionsPlayer p) {
-		if (	p.getStatisticsProfile().getLastUpdate() == 0) {
-			p.getStatisticsProfile().setLastUpdate(System.currentTimeMillis());
-		}
-		long timediff = (System.currentTimeMillis() - 	p.getStatisticsProfile().getLastUpdate());
-		int pretime = (int) (timediff / 1000);
-		long time = p.getStatisticsProfile().getSecondsConnected() + pretime;
-		p.getStatisticsProfile().setSecondsConnected(time);
-		p.getStatisticsProfile().setLastUpdate(System.currentTimeMillis());
-	}
-	 
-	/**
-	 * 
-	 * @param ms
-	 * @returns a list of time units
-	 * days:hours:minutes:seconds
-	 */
-	 public int[] translateTime(long ms) {
-			int day = (int)TimeUnit.SECONDS.toDays(ms);        
-			 int hours = (int) (TimeUnit.SECONDS.toHours(ms) - (day *24));
-			 int minute = (int) (TimeUnit.SECONDS.toMinutes(ms) - (TimeUnit.SECONDS.toHours(ms)* 60));
-			 int second = (int) (TimeUnit.SECONDS.toSeconds(ms) - (TimeUnit.SECONDS.toMinutes(ms) *60));
-			int[] i= {day, hours, minute, second};
-			 return i;
-	 }
-	 
+
+    // Constructor to initialize the instance
+    public TimeHelper() {
+        setInstance(this);
+    }
+
+    /**
+     * Updates the time for the given player based on the last update time
+     * and adds the time difference to the player's seconds connected.
+     *
+     * @param p The player whose time will be updated.
+     */
+    public void updateTime(KingdomFactionsPlayer p) {
+        long currentTime = System.currentTimeMillis();
+        
+        // If the player has never been updated before, set the last update time to the current time
+        if (p.getStatisticsProfile().getLastUpdate() == 0) {
+            p.getStatisticsProfile().setLastUpdate(currentTime);
+        }
+        
+        // Calculate the time difference in seconds
+        long timeDiffInMillis = currentTime - p.getStatisticsProfile().getLastUpdate();
+        int timeDiffInSeconds = (int) (timeDiffInMillis / 1000);
+        
+        // Update the player's total connected time
+        long newTotalTime = p.getStatisticsProfile().getSecondsConnected() + timeDiffInSeconds;
+        p.getStatisticsProfile().setSecondsConnected(newTotalTime);
+        
+        // Update the last update time to the current time
+        p.getStatisticsProfile().setLastUpdate(currentTime);
+    }
+
+    /**
+     * Translates milliseconds into an array of time units in the format of
+     * days, hours, minutes, seconds.
+     *
+     * @param ms The time in milliseconds.
+     * @return An array containing the days, hours, minutes, and seconds.
+     */
+    public int[] translateTime(long ms) {
+        int days = (int) TimeUnit.MILLISECONDS.toDays(ms);
+        int hours = (int) (TimeUnit.MILLISECONDS.toHours(ms) - (days * 24));
+        int minutes = (int) (TimeUnit.MILLISECONDS.toMinutes(ms) - (TimeUnit.MILLISECONDS.toHours(ms) * 60));
+        int seconds = (int) (TimeUnit.MILLISECONDS.toSeconds(ms) - (TimeUnit.MILLISECONDS.toMinutes(ms) * 60));
+        
+        return new int[] { days, hours, minutes, seconds };
+    }
 }

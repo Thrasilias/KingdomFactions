@@ -2,36 +2,47 @@ package nl.dusdavidgames.kingdomfactions.modules.kingdom.nexus;
 
 import org.bukkit.Location;
 
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import nl.dusdavidgames.kingdomfactions.modules.kingdom.kingdom.Kingdom;
 import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFactionsPlayer;
 import nl.dusdavidgames.kingdomfactions.modules.utils.action.IAction;
 
-public @Data class SetCapitalAction implements IAction {
+public class SetCapitalAction implements IAction {
 
-	public SetCapitalAction(Kingdom kingdom, KingdomFactionsPlayer player) {
-		this.kingdom = kingdom;
-		this.player = player;
-	}
+    private final Kingdom kingdom;
+    private final KingdomFactionsPlayer player;
 
-	private Kingdom kingdom;
+    @Getter @Setter
+    private Location location;
 
-	private KingdomFactionsPlayer player;
+    public SetCapitalAction(Kingdom kingdom, KingdomFactionsPlayer player) {
+        this.kingdom = kingdom;
+        this.player = player;
+    }
 
-	private @Getter @Setter Location location;
+    @Override
+    public void execute() {
+        if (kingdom == null || location == null) {
+            // Handle error if kingdom or location is invalid
+            player.sendMessage("Invalid kingdom or location.");
+            return;
+        }
+        
+        if (!player.hasPermission("kingdom.setcapital")) {
+            // Handle lack of permission
+            player.sendMessage("You do not have permission to set the capital.");
+            return;
+        }
 
-	@Override
-	public void execute() {
-		this.kingdom.getNexus().setLocation(location);
-		this.kingdom.getNexus().save();
-		cancel();
+        this.kingdom.getNexus().setLocation(location);
+        this.kingdom.getNexus().save();
+        player.sendMessage("Capital set successfully.");
+        cancel();
+    }
 
-	}
-
-	@Override
-	public void cancel() {
-		this.player.setAction(null);
-	}
+    @Override
+    public void cancel() {
+        this.player.setAction(null);
+    }
 }

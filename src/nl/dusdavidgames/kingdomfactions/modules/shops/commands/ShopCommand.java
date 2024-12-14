@@ -15,151 +15,144 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.Messages;
 
 public class ShopCommand extends KingdomFactionsCommand {
 
-	public ShopCommand(String name, String permission, String info, String usage, boolean sub, boolean allowConsole) {
-		super(name, permission, info, usage, sub, allowConsole);
-		// TODO Auto-generated constructor stub
-	}
+    public ShopCommand(String name, String permission, String info, String usage, boolean sub, boolean allowConsole) {
+        super(name, permission, info, usage, sub, allowConsole);
+    }
 
-	@Override
-	public void init() {
-		this.registerSub(
-				new SubCommand("additem", "kingdomfactions.command.shop.additem", "Voeg een item toe aan de shop!") {
+    @Override
+    public void init() {
+        this.registerSub(new SubCommand("additem", "kingdomfactions.command.shop.additem", "Voeg een item toe aan de shop!") {
 
-					@Override
-					public void execute(String[] args) {
-						if (!(getSender() instanceof Player)) {
-							getSender().sendMessage(Messages.getInstance().getPrefix()
-									+ "Dit command is niet voor de console beschikbaar!");
-							return;
-						}
+            @Override
+            public void execute(String[] args) {
+                if (!(getSender() instanceof Player)) {
+                    getSender().sendMessage(Messages.getInstance().getPrefix()
+                            + "Dit command is niet voor de console beschikbaar!");
+                    return;
+                }
 
-						if (args.length < 4) {
-							getSender().sendMessage(Messages.getInstance().getPrefix()
-									+ "/shop additem <type> <level> <buyprice> <sellprice> <displayname> [limit] [extraData]");
-							getSender().sendMessage(Messages.getInstance().getPrefix()
-									+ "Example: /shop additem nexus 1 1000 -1 false 1 Spider");
-							return;
-						}
+                if (args.length < 6) {
+                    getSender().sendMessage(Messages.getInstance().getPrefix()
+                            + "/shop additem <type> <level> <buyprice> <sellprice> <displayname> [limit] [extraData]");
+                    getSender().sendMessage(Messages.getInstance().getPrefix()
+                            + "Example: /shop additem nexus 1 1000 -1 false 1 Spider");
+                    return;
+                }
 
-						Player player = null;
+                Player player = (Player) getSender();
 
-						if (getSender() instanceof Player)
-							player = (Player) getSender();
+                String type = getArgs()[1].toUpperCase();
+                String level = "LEVEL_" + getArgs()[2];
+                int buyPrice;
+                int sellPrice;
+                boolean useDisplayname;
 
-						String type = getArgs()[1].toUpperCase();
-						String level = "LEVEL_" + getArgs()[2];
-						int buyPrice = Integer.parseInt(getArgs()[3]);
-						int sellprice = Integer.parseInt(getArgs()[4]);
-						boolean useDisplayname = Boolean.parseBoolean(getArgs()[5]);
+                try {
+                    buyPrice = Integer.parseInt(getArgs()[3]);
+                    sellPrice = Integer.parseInt(getArgs()[4]);
+                    useDisplayname = Boolean.parseBoolean(getArgs()[5]);
+                } catch (NumberFormatException e) {
+                    player.sendMessage(Messages.getInstance().getPrefix() + "Ongeldige prijs of displaynaam.");
+                    return;
+                }
 
-						boolean goodLevel = false;
-						boolean goodType = false;
+                if (!isValidType(type, player) || !isValidLevel(level, player)) {
+                    return;
+                }
 
-						for (BuildingType t : BuildingType.values()) {
-							if (t.name().equalsIgnoreCase(type)) {
-								goodType = true;
-							}
-						}
+                int limit = args.length > 6 ? Integer.parseInt(getArgs()[6]) : -1;
+                String extraData = args.length > 7 ? getArgs()[7] : " ";
 
-						if (!goodType) {
-							player.sendMessage(Messages.getInstance().getPrefix() + "Type niet gevonden! Types: "
-									+ BuildingType.values().toString());
-							return;
-						}
+                new AddItemMenu(PlayerModule.getInstance().getPlayer(player), type, level, buyPrice, sellPrice,
+                        useDisplayname, extraData, limit);
+            }
 
-						for (BuildLevel levels : BuildLevel.values()) {
-							if (levels.name().equalsIgnoreCase(level)) {
-								goodLevel = true;
-							}
-						}
+            private boolean isValidType(String type, Player player) {
+                for (BuildingType t : BuildingType.values()) {
+                    if (t.name().equalsIgnoreCase(type)) {
+                        return true;
+                    }
+                }
+                player.sendMessage(Messages.getInstance().getPrefix() + "Type niet gevonden! Types: "
+                        + BuildingType.values().toString());
+                return false;
+            }
 
-						if (!goodLevel) {
-							player.sendMessage(Messages.getInstance().getPrefix() + "Level niet gevonden! Levels: "
-									+ BuildLevel.values().toString());
-							return;
-						}
+            private boolean isValidLevel(String level, Player player) {
+                for (BuildLevel levels : BuildLevel.values()) {
+                    if (levels.name().equalsIgnoreCase(level)) {
+                        return true;
+                    }
+                }
+                player.sendMessage(Messages.getInstance().getPrefix() + "Level niet gevonden! Levels: "
+                        + BuildLevel.values().toString());
+                return false;
+            }
+        });
 
-						int limit = -1;
+        this.registerSub(new SubCommand("open", "kingdomfactions.command.shop.open", "Open een shop menu!") {
 
-						if (args.length > 6) {
-							limit = Integer.parseInt(getArgs()[6]);
-						}
+            @Override
+            public void execute(String[] args) {
+                if (!(getSender() instanceof Player)) {
+                    getSender().sendMessage(Messages.getInstance().getPrefix() + "Dit command is niet voor de console beschikbaar!");
+                    return;
+                }
 
-						String extraData = " ";
+                if (args.length < 3) {
+                    getSender().sendMessage(Messages.getInstance().getPrefix() + "Gebruik: /shop open <type> <level>");
+                    return;
+                }
 
-						if (args.length > 7) {
-							extraData = getArgs()[7];
-						}
+                String buildingName = getArgs()[1];
+                BuildingType bType = getBuildingType(buildingName);
+                if (bType == null) {
+                    getSender().sendMessage(Messages.getInstance().getPrefix() + "Invalid building type: " + buildingName);
+                    return;
+                }
 
-						new AddItemMenu(PlayerModule.getInstance().getPlayer(player), type, level, buyPrice, sellprice,
-								useDisplayname, extraData, limit);
-					}
-				});
+                String level = "LEVEL_" + getArgs()[2];
+                BuildLevel sLevel = getBuildLevel(level);
+                if (sLevel == null) {
+                    getSender().sendMessage(Messages.getInstance().getPrefix() + "Invalid build level: " + level);
+                    return;
+                }
 
-		this.registerSub(new SubCommand("open", "kingdomfactions.command.shop.open", "Open een shop menu!") {
+                Player player = (Player) getSender();
+                player.openInventory(ShopsModule.getInstance().getShop(bType, sLevel).getShopInventory());
+                broadcast(PlayerModule.getInstance().getPlayer(getSender()).getFormattedName() + ChatColor.YELLOW
+                        + " heeft een shop geopend type " + bType + " level " + sLevel + ".");
+            }
 
-			@Override
-			public void execute(String[] args) {
-				if (!(getSender() instanceof Player)) {
-					getSender().sendMessage(
-							Messages.getInstance().getPrefix() + "Dit command is niet voor de console beschikbaar!");
-					return;
-				}
+            private BuildingType getBuildingType(String buildingName) {
+                try {
+                    return BuildingType.valueOf(buildingName.toUpperCase());
+                } catch (Exception e) {
+                    return null;
+                }
+            }
 
-				String buildingName = getArgs()[1];
+            private BuildLevel getBuildLevel(String level) {
+                try {
+                    return BuildLevel.valueOf(level);
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        });
 
-				BuildingType bType = null;
+        this.registerSub(new SubCommand("reload", "kingdomfactions.command.shop.reload", "reload de shops!") {
 
-				try {
-					bType = BuildingType.valueOf(buildingName.toUpperCase());
-				} catch (Exception e) {
-				}
+            @Override
+            public void execute(String[] args) {
+                getSender().sendMessage(Messages.getInstance().getPrefix() + "Shops herladen...");
+                ShopsModule.getInstance().reload(getSender());
+            }
+        });
+    }
 
-				if (bType == null) {
-					getSender().sendMessage(
-							Messages.getInstance().getPrefix() + "Gebruik /kingdom openshop <Type> <Level>");
-					getSender().sendMessage("Types: NEXUS, BLACKSMITH, BAKERY, MAGETOWER en FORGE.");
-					return;
-				}
-
-				String level = "LEVEL_" + getArgs()[2];
-				BuildLevel sLevel = null;
-				try {
-					sLevel = BuildLevel.valueOf(level);
-				} catch (Exception e) {
-				}
-
-				if (sLevel == null) {
-					getSender().sendMessage(
-							Messages.getInstance().getPrefix() + "Gebruik /kingdom openshop <Type> <Level>");
-					getSender().sendMessage("Levels: 1, 2, 3, 4, 5, 6, 7 en 8.");
-					return;
-				}
-
-				Player player = null;
-
-				if (getSender() instanceof Player)
-					player = (Player) getSender();
-
-				player.openInventory(ShopsModule.getInstance().getShop(bType, sLevel).getShopInventory());
-				broadcast(PlayerModule.getInstance().getPlayer(getSender()).getFormattedName() + ChatColor.YELLOW
-						+ " heeft een shop geopend type " + bType + " level " + sLevel + ".");
-			}
-		});
-
-		this.registerSub(new SubCommand("reload", "kingdomfactions.command.shop.reload", "reload de shops!") {
-
-			@Override
-			public void execute(String[] args) {
-				getSender().sendMessage(Messages.getInstance().getPrefix() + "Shops herladen...");
-				ShopsModule.getInstance().reload(getSender());
-			}
-		});
-	}
-
-	@Override
-	public void execute() throws KingdomFactionsException {
-		// TODO Auto-generated method stub
-
-	}
+    @Override
+    public void execute() throws KingdomFactionsException {
+        // No implementation needed as it's handled by subcommands
+    }
 }

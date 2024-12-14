@@ -1,47 +1,41 @@
 package nl.dusdavidgames.kingdomfactions.modules.player.runnables.main;
 
-import java.util.Iterator;
-
 import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFactionsPlayer;
 import nl.dusdavidgames.kingdomfactions.modules.utils.Cooldown;
 import nl.dusdavidgames.kingdomfactions.modules.utils.TeleportationAction;
 import nl.dusdavidgames.kingdomfactions.modules.utils.action.IAction;
 
-public class ImportandTasks {
+public class ImportantTasks {
 
-	
-	
-	
-	public ImportandTasks(MainPlayerRunnable r) {
+    public ImportantTasks(MainPlayerRunnable r) {
 
-	    r.scheduleTask(new ScheduledPlayerTask() {
-			
-			@Override
-			public void run(KingdomFactionsPlayer player) {
-				Iterator<Cooldown> iter = player.getCooldowns().iterator();
-				while(iter.hasNext()) {
-					iter.next().lower();
-				}
-				
-			}
-		});
-	
-	    r.scheduleTask(new ScheduledPlayerTask() {
-			
-			@Override
-			public void run(KingdomFactionsPlayer player) {
-				KingdomFactionsPlayer p = player;
-				if(!p.hasAction()) {
-					return;
-				}
-				IAction a = p.getAction();
-				if(a instanceof TeleportationAction) {
-					TeleportationAction ta = (TeleportationAction) a;
-					ta.handleDelayChange();
-				}
-			}
-		});
+        // Schedule task to reduce cooldowns
+        r.scheduleTask(new ScheduledPlayerTask() {
 
-	}
-	
+            @Override
+            public void run(KingdomFactionsPlayer player) {
+                // Iterate through cooldowns using enhanced for-loop for better readability
+                for (Cooldown cooldown : player.getCooldowns()) {
+                    cooldown.lower(); // Reduce cooldown for each cooldown in the player's list
+                }
+            }
+        });
+
+        // Schedule task to handle teleportation action delays
+        r.scheduleTask(new ScheduledPlayerTask() {
+
+            @Override
+            public void run(KingdomFactionsPlayer player) {
+                // Only proceed if the player has an active action
+                if (player.hasAction()) {
+                    IAction action = player.getAction();
+                    // Check if the action is of type TeleportationAction
+                    if (action instanceof TeleportationAction) {
+                        TeleportationAction teleportationAction = (TeleportationAction) action;
+                        teleportationAction.handleDelayChange(); // Handle teleportation delay change
+                    }
+                }
+            }
+        });
+    }
 }

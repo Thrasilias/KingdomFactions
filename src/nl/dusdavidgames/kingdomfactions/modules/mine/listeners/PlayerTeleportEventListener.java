@@ -9,16 +9,31 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 /**
- * Created by Jan on 21-6-2017.
+ * Listens for teleportation events and triggers a delayed custom teleport event.
  */
 public class PlayerTeleportEventListener implements Listener {
 
+    // Constant for the teleport delay in ticks (40 ticks = 2 seconds)
+    private static final long TELEPORT_DELAY_TICKS = 40L;
+
     @EventHandler
     public void onTeleport(final PlayerTeleportEvent e) {
+        // Delaying the teleport event processing by 2 seconds
         Bukkit.getScheduler().runTaskLater(KingdomFactionsPlugin.getInstance(), () -> {
-                Logger.DEBUG.log("Calling TeleportEvent");
-                Bukkit.getPluginManager().callEvent(new DelayedPlayerTeleportEvent(e));
-        }, 40L);
+            // Debug log to indicate the event is being handled
+            Logger.DEBUG.log("Calling TeleportEvent");
+            
+            // Triggering the custom delayed teleport event
+            callDelayedTeleportEvent(e);
+        }, TELEPORT_DELAY_TICKS);
     }
 
+    /**
+     * Calls the custom delayed teleport event.
+     * 
+     * @param originalEvent The original PlayerTeleportEvent that was triggered.
+     */
+    private void callDelayedTeleportEvent(PlayerTeleportEvent originalEvent) {
+        Bukkit.getPluginManager().callEvent(new DelayedPlayerTeleportEvent(originalEvent));
+    }
 }

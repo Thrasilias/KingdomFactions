@@ -5,13 +5,18 @@ import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFact
 
 public interface IAction {
 
-	
-	public KingdomFactionsPlayer getPlayer();
-	
-	@Deprecated
-	public void execute() throws KingdomFactionsException;
+    // Get the player associated with the action
+    KingdomFactionsPlayer getPlayer();
 
-	default public void cancel() {
-		getPlayer().setAction(null);
-	}
+    // The execute method is now marked as deprecated and should be used cautiously
+    @Deprecated
+    void execute() throws KingdomFactionsException;
+
+    // Default cancel method to unset the player's current action
+    default void cancel() {
+        KingdomFactionsPlayer player = getPlayer();
+        if (player != null) {
+            player.setAction(null); // Unsets the action associated with the player
+        }
+    }
 }

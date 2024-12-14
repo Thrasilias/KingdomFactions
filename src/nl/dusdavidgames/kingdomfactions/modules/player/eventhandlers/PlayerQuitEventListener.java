@@ -14,24 +14,35 @@ public class PlayerQuitEventListener implements Listener {
 
 	@EventHandler
 	public void onQuit(PlayerQuitEvent e) {
-		e.setQuitMessage(null);
-		
-		KingdomFactionsPlayer p = PlayerModule.getInstance().getPlayer(e.getPlayer());
-		if(p.getCombatTracker().isInCombat()) {
-	   p.getCombatTracker().handleDisconnect();
-		Bukkit.getScheduler().runTaskLater(KingdomFactionsPlugin.getInstance(), new Runnable() {
-			
-			@Override
-			public void run() {
-				ChatModule.getInstance().getChannels().forEach(channel -> channel.leave(p, false));
-			    p.saveLogOut();
-			}
-		}, 20*2L);
+		e.setQuitMessage(null);  // Hide quit message
+
+		KingdomFactionsPlayer player = PlayerModule.getInstance().getPlayer(e.getPlayer());
+
+		// Handle player combat tracker
+		if (player.getCombatTracker().isInCombat()) {
+			handleCombatDisconnect(player);
 		} else {
-		ChatModule.getInstance().getChannels().forEach(channel -> channel.leave(p, false));
-		
-	    p.saveLogOut();
+			handleRegularDisconnect(player);
 		}
-		
+	}
+
+	private void handleCombatDisconnect(KingdomFactionsPlayer player) {
+		// Handle combat disconnect scenario
+		player.getCombatTracker().handleDisconnect();
+		Bukkit.getScheduler().runTaskLater(KingdomFactionsPlugin.getInstance(), () -> {
+			leaveAllChannels(player);
+			player.saveLogOut();
+		}, 40L);  // 2-second delay
+	}
+
+	private void handleRegularDisconnect(KingdomFactionsPlayer player) {
+		// Handle regular disconnect scenario
+		leaveAllChannels(player);
+		player.saveLogOut();
+	}
+
+	private void leaveAllChannels(KingdomFactionsPlayer player) {
+		// Make the player leave all chat channels
+		ChatModule.getInstance().getChannels().forEach(channel -> channel.leave(player, false));
 	}
 }

@@ -11,18 +11,48 @@ import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFact
 
 public class KingdomSwitchListener implements Listener {
 
-	@EventHandler
-	public void onSwitch(KingdomSwitchEvent e) {
-	   e.getPlayer().getChatProfile().wipeChannels();
-		KingdomFactionsPlayer p = e.getPlayer();
-		Faction f = e.getPlayer().getFaction();
-		if (f != null) {
-			p.getScoreboard().editLine(8, ChatColor.GRAY + "[" +p.getKingdom().getType().getColor()+ f.getName() + ChatColor.GRAY + "]");
-		} else {
-			p.getScoreboard().editLine(8, p.getKingdom().getType().getColor() + "Geen Faction!");
-		}
-		for (KingdomFactionsPlayer t : PlayerModule.getInstance().getPlayers()) {
-			t.getScoreboard().refreshTags();
-		}
-	}
+    /**
+     * Handles the KingdomSwitchEvent by updating the player's scoreboard
+     * and refreshing the tags for all players.
+     *
+     * @param e The KingdomSwitchEvent triggered when a player switches kingdoms.
+     */
+    @EventHandler
+    public void onSwitch(KingdomSwitchEvent e) {
+        KingdomFactionsPlayer player = e.getPlayer();
+        
+        // Clear the player's current chat channels
+        player.getChatProfile().wipeChannels();
+
+        // Update the player's scoreboard line based on their kingdom and faction
+        updateScoreboard(player);
+
+        // Refresh the scoreboard tags for all players
+        refreshPlayerTags();
+    }
+
+    /**
+     * Updates the player's scoreboard line with their kingdom and faction info.
+     * 
+     * @param player The player whose scoreboard line needs to be updated.
+     */
+    private void updateScoreboard(KingdomFactionsPlayer player) {
+        Faction faction = player.getFaction();
+        String factionName = (faction != null) ? faction.getName() : "Geen Faction!";
+        
+        // Ensure the player's kingdom is not null before accessing it
+        String kingdomName = (player.getKingdom() != null) ? player.getKingdom().getType().getColor() + player.getKingdom().getType().name() : ChatColor.GRAY + "No Kingdom";
+
+        // Set the scoreboard line for the player
+        player.getScoreboard().editLine(8, ChatColor.GRAY + "[" + kingdomName + " " + factionName + ChatColor.GRAY + "]");
+    }
+
+    /**
+     * Refreshes the scoreboard tags for all players in the system.
+     */
+    private void refreshPlayerTags() {
+        for (KingdomFactionsPlayer t : PlayerModule.getInstance().getPlayers()) {
+            t.getScoreboard().refreshTags();
+        }
+    }
 }

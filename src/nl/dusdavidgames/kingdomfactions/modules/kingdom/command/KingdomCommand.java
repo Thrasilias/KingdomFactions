@@ -16,139 +16,129 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.Messages;
 
 public class KingdomCommand extends KingdomFactionsCommand {
 
-	public KingdomCommand(String name, String permission, String info, String usage, boolean sub,
-			boolean allowConsole) {
-		super(name, permission, info, usage, sub, allowConsole);
-		// TODO Auto-generated constructor stub
-	}
+    public KingdomCommand(String name, String permission, String info, String usage, boolean sub, boolean allowConsole) {
+        super(name, permission, info, usage, sub, allowConsole);
+    }
 
-	@Override
-	public void init() {
-		this.registerSub(new SubCommand("setkingdom", "kingdomfactions.command.kingdom.setkingdom",
-				"Zet iemand in een kingdom!") {
+    @Override
+    public void init() {
+        registerSub(new SubCommand("setkingdom", "kingdomfactions.command.kingdom.setkingdom", "Zet iemand in een kingdom!") {
+            @Override
+            public void execute(String[] args) {
+                IPlayerBase player = getPlayerBaseFromArgs(args, 1);
+                if (player == null) return;
 
-			@Override
-			public void execute(String[] args) {
-				IPlayerBase player = null;
-				try {
-					player = PlayerModule.getInstance().getPlayerBase(getArgs()[1]);
-				} catch (UnkownPlayerException e) {
-					getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Kon deze speler niet vinden.");
-				}
-				Kingdom kingdom = KingdomModule.getInstance().getKingdom(getArgs()[2]);
-				
-				if(kingdom == null){
-					getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Ongeldig Kingdom! Kies uit: HYVAR, EREDON, TILIFIA, MALZAN, ADAMANTIUM en DOK");
-					return;
-				}
-				
-				player.setKingdom(kingdom);
-				getPlayer().sendMessage(
-						Messages.getInstance().getPrefix() + "Je hebt " + player.getName() + " naar het Kingdom "
-								+ player.getKingdom().getType().getPrefix() + ChatColor.WHITE + "gezet!");
-			}
-		});
-		this.registerSub(new SubCommand("setrank", "kingdomfactions.command.kingdom.setrank",
-				"Zet iemand's rank in een Kingdom") {
+                Kingdom kingdom = KingdomModule.getInstance().getKingdom(args[2]);
+                if (kingdom == null) {
+                    sendMessage("Ongeldig Kingdom! Kies uit: HYVAR, EREDON, TILIFIA, MALZAN, ADAMANTIUM en DOK");
+                    return;
+                }
 
-			@Override
-			public void execute(String[] args) {
-				IPlayerBase player = null;
-				try {
-					player = PlayerModule.getInstance().getPlayerBase(getArgs()[1]);
-				} catch (UnkownPlayerException e) {
-					getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Kon deze speler niet vinden.");
-				}
-				player.setKingdomRank(KingdomRank.getRank(getArgs()[2]));
-				getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Je hebt " + player.getName()
-						+ " gepromoveerd tot " + KingdomRank.getRank(getArgs()[2]));
-			}
-		});
-        this.registerSub(new SubCommand("setspawn", "kingdomfactions.command.kingdom.setspawn", "Zet de spawn van een kingdom!") {
-			
-			@Override
-			public void execute(String[] args) {
-				Kingdom k = KingdomModule.getInstance().getKingdom(getArgs()[1]);
-				if(k != null) {
-					getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Je hebt de Spawn van " + k.getType().getPrefix() + ChatColor.WHITE + "gezet!");
-					k.setSpawn(getPlayer().getLocation());
-					KingdomDatabase.getInstance().setSpawn(k.getType().toString(), getPlayer().getLocation());
-				} else {
-					getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Ongeldig Kingdom! Kies uit: HYVAR, EREDON, TILIFIA, MALZAN, ADAMANTIUM en DOK");
-				}
-				
-			}
-		});
-        this.registerSub(new SubCommand("spawn", "kingdomfactions.command.kingdom.spawn", "Teleporteer naar de spawn van een Kingdom") {
-			
-			@Override
-			public void execute(String[] args) throws KingdomFactionsException {
-			try {
-		   KingdomFactionsPlayer player = PlayerModule.getInstance().getPlayer(getArgs()[2]);
-		   if(player == null) {
-			   getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Deze speler is offline!");
-		   } else {
-			   Kingdom k = KingdomModule.getInstance().getKingdom(getArgs()[1]);
-				if(k != null) {
-					if(k.getSpawn() == null) {
-						getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Dit Kingdom heeft geen spawn gezet!");
-						return;
-					}
-				   player.teleport(k.getSpawn());
-				   getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Je hebt " + player.getName() + " naar de spawn van " + k.getType().getPrefix() + "geteleporteerd!");
-				} else {
-					getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Ongeldig Kingdom!");
-				}
-		   }
-			} catch(ArrayIndexOutOfBoundsException e) {
-				  Kingdom k = KingdomModule.getInstance().getKingdom(getArgs()[1]);
-					if(k != null) {
-						if(k.getSpawn() == null) {
-							getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Dit Kingdom heeft geen spawn gezet!");
-							return;
-						}
-					   getPlayer().teleport(k.getSpawn());
-					   getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Teleporteren naar de spawn van " + k.getType().getPrefix());
-					} else {
-						getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Ongeldig Kingdom!");
-					}
-			}
-			}
-		});
-        this.registerSub(new SubCommand("check", "kingdomfactions.command.kingdom.check", "Verkrijg informatie over een speler") {
+                player.setKingdom(kingdom);
+                sendMessage("Je hebt " + player.getName() + " naar het Kingdom " + player.getKingdom().getType().getPrefix() + ChatColor.WHITE + "gezet!");
+            }
+        });
 
-			@Override
-			public void execute(String[] args) throws UnkownPlayerException {
-				this.setAllowConsole(true);
-					IPlayerBase player = PlayerModule.getInstance().getPlayerBase(getArgs()[1]);
-                    getSender().sendMessage(Messages.getInstance().getPrefix() + "------------------");
-                    getSender().sendMessage(ChatColor.WHITE + "Kingdom: " + player.getKingdom().getType().getPrefix());
-                    if(player.getKingdomRank() != KingdomRank.SPELER) {
-                    getSender().sendMessage(ChatColor.WHITE + "Kingdom Rank: " + player.getKingdomRank().getPrefix());
+        registerSub(new SubCommand("setrank", "kingdomfactions.command.kingdom.setrank", "Zet iemand's rank in een Kingdom") {
+            @Override
+            public void execute(String[] args) {
+                IPlayerBase player = getPlayerBaseFromArgs(args, 1);
+                if (player == null) return;
+
+                KingdomRank rank = KingdomRank.getRank(args[2]);
+                player.setKingdomRank(rank);
+                sendMessage("Je hebt " + player.getName() + " gepromoveerd tot " + rank);
+            }
+        });
+
+        registerSub(new SubCommand("setspawn", "kingdomfactions.command.kingdom.setspawn", "Zet de spawn van een kingdom!") {
+            @Override
+            public void execute(String[] args) {
+                Kingdom kingdom = KingdomModule.getInstance().getKingdom(args[1]);
+                if (kingdom != null) {
+                    kingdom.setSpawn(getPlayer().getLocation());
+                    KingdomDatabase.getInstance().setSpawn(kingdom.getType().toString(), getPlayer().getLocation());
+                    sendMessage("Je hebt de Spawn van " + kingdom.getType().getPrefix() + ChatColor.WHITE + "gezet!");
+                } else {
+                    sendMessage("Ongeldig Kingdom! Kies uit: HYVAR, EREDON, TILIFIA, MALZAN, ADAMANTIUM en DOK");
+                }
+            }
+        });
+
+        registerSub(new SubCommand("spawn", "kingdomfactions.command.kingdom.spawn", "Teleporteer naar de spawn van een Kingdom") {
+            @Override
+            public void execute(String[] args) {
+                try {
+                    KingdomFactionsPlayer player = PlayerModule.getInstance().getPlayer(args[2]);
+                    if (player == null) {
+                        sendMessage("Deze speler is offline!");
+                    } else {
+                        Kingdom kingdom = KingdomModule.getInstance().getKingdom(args[1]);
+                        if (kingdom != null && kingdom.getSpawn() != null) {
+                            player.teleport(kingdom.getSpawn());
+                            sendMessage("Je hebt " + player.getName() + " naar de spawn van " + kingdom.getType().getPrefix() + "geteleporteerd!");
+                        } else {
+                            sendMessage("Dit Kingdom heeft geen spawn gezet!");
+                        }
                     }
-                    getSender().sendMessage(Messages.getInstance().getPrefix() + "------------------");
-				
-			}
-		});
-        this.registerSub(new SubCommand("setcapital", "kingdomfactions.command.kingdom.setcapital", "Zet de hoofdstad van een Kingdom!") {
-			
-			@Override
-			public void execute(String[] args) throws KingdomFactionsException {
-				if(!getPlayer().hasAction()) {
-					getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Je bent een Hoofdstad-zet actie begonnen!");
-					KingdomModule.getInstance().createAction(KingdomModule.getInstance().getKingdom(getArgs()[1]), getPlayer());
-				} else {
-					getPlayer().sendMessage(Messages.getInstance().getPrefix() + "Je hebt al een actie lopen!!");
-				}
-				
-			}
-		});
-	}
+                } catch (ArrayIndexOutOfBoundsException | KingdomFactionsException e) {
+                    Kingdom kingdom = KingdomModule.getInstance().getKingdom(args[1]);
+                    if (kingdom != null && kingdom.getSpawn() != null) {
+                        getPlayer().teleport(kingdom.getSpawn());
+                        sendMessage("Teleporteren naar de spawn van " + kingdom.getType().getPrefix());
+                    } else {
+                        sendMessage("Ongeldig Kingdom of geen spawn gezet!");
+                    }
+                }
+            }
+        });
 
-	@Override
-	public void execute() {
-		// TODO Auto-generated method stub
+        registerSub(new SubCommand("check", "kingdomfactions.command.kingdom.check", "Verkrijg informatie over een speler") {
+            @Override
+            public void execute(String[] args) throws UnkownPlayerException {
+                IPlayerBase player = PlayerModule.getInstance().getPlayerBase(args[1]);
+                sendMessage("---------------");
+                sendMessage("Kingdom: " + player.getKingdom().getType().getPrefix());
+                if (player.getKingdomRank() != KingdomRank.SPELER) {
+                    sendMessage("Kingdom Rank: " + player.getKingdomRank().getPrefix());
+                }
+                sendMessage("---------------");
+            }
+        });
 
-	}
+        registerSub(new SubCommand("setcapital", "kingdomfactions.command.kingdom.setcapital", "Zet de hoofdstad van een Kingdom!") {
+            @Override
+            public void execute(String[] args) {
+                if (!getPlayer().hasAction()) {
+                    Kingdom kingdom = KingdomModule.getInstance().getKingdom(args[1]);
+                    if (kingdom != null) {
+                        KingdomModule.getInstance().createAction(kingdom, getPlayer());
+                        sendMessage("Je hebt de hoofdstad actie gestart voor " + kingdom.getType().getPrefix());
+                    } else {
+                        sendMessage("Ongeldig Kingdom!");
+                    }
+                } else {
+                    sendMessage("Je hebt al een actie lopen!!");
+                }
+            }
+        });
+    }
 
+    private IPlayerBase getPlayerBaseFromArgs(String[] args, int index) {
+        try {
+            return PlayerModule.getInstance().getPlayerBase(args[index]);
+        } catch (UnkownPlayerException e) {
+            sendMessage("Kon deze speler niet vinden.");
+            return null;
+        }
+    }
+
+    private void sendMessage(String message) {
+        getPlayer().sendMessage(Messages.getInstance().getPrefix() + message);
+    }
+
+    @Override
+    public void execute() {
+        // This method is not used in this context, you can leave it empty or remove it if necessary.
+    }
 }

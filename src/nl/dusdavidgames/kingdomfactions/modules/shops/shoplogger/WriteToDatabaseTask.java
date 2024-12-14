@@ -8,24 +8,28 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.logger.Logger;
 
 public class WriteToDatabaseTask implements Runnable {
 
-	@Override
-	public void run() {
-		Bukkit.getScheduler().scheduleSyncDelayedTask(KingdomFactionsPlugin.getInstance(), new Runnable() {
-			@Override
-			public void run() {
-				Bukkit.getScheduler().scheduleSyncDelayedTask(KingdomFactionsPlugin.getInstance(), new Runnable() {
-					@Override
-					public void run() {
-						if (ShopLogger.getInstance().getShopLogs().isEmpty())
-							return;
-						Logger.DEBUG.log("Attempting to save one shop log to database");
-						ShopLogDatabase.getInstance().save(ShopLogger.getInstance().getShopLogs().get(0));
-						ShopLogger.getInstance().getShopLogs().remove(0);
-						Logger.DEBUG.log("saved one shop log to database. "
-								+ ShopLogger.getInstance().getShopLogs().size() + " shop logs left.");
-					}
-				});
-			}
-		});
-	}
+    @Override
+    public void run() {
+        // Check if there are any shop logs to save
+        if (ShopLogger.getInstance().getShopLogs().isEmpty()) {
+            return; // No logs to save, exit early
+        }
+
+        // Attempt to save the first log to the database
+        Logger.DEBUG.log("Attempting to save one shop log to database");
+
+        ShopLog log = ShopLogger.getInstance().getShopLogs().poll(); // Retrieve and remove the first log
+
+        // Save the log to the database
+        ShopLogDatabase.getInstance().save(log);
+
+        Logger.DEBUG.log("Saved one shop log to database. " +
+                ShopLogger.getInstance().getShopLogs().size() + " shop logs left.");
+
+        // Optionally, if you want to keep the task running every 3 seconds:
+        // This can be done by scheduling the next run.
+        if (!ShopLogger.getInstance().getShopLogs().isEmpty()) {
+            Bukkit.getScheduler().scheduleSyncDelayedTask(KingdomFactionsPlugin.getInstance(), this, 20 * 3);
+        }
+    }
 }

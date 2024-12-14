@@ -1,6 +1,7 @@
 package nl.dusdavidgames.kingdomfactions.modules.shops;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -22,91 +23,64 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.Messages;
 
 public class ShopsModule {
 
-	private static @Getter @Setter ShopsModule instance;
+    private static @Getter @Setter ShopsModule instance;
 
-	private @Getter ArrayList<Shop> shops = new ArrayList<>();
+    // Using a Map for quicker lookup
+    private @Getter Map<String, Shop> shopsByName = new HashMap<>();
+    private @Getter Map<String, Shop> shopsByTypeAndLevel = new HashMap<>();
 
-	public ShopsModule() {
-		setInstance(this);
+    public ShopsModule() {
+        setInstance(this);
 
-		new ShopLogger();
+        new ShopLogger();
 
-		for (BuildingType t : BuildingType.values()) {
-			for (BuildLevel level : BuildLevel.values()) {
-				this.shops.add(new Shop(t, level));
-			}
-		}
+        // Initialize shops based on building type and level
+        for (BuildingType type : BuildingType.values()) {
+            for (BuildLevel level : BuildLevel.values()) {
+                Shop shop = new Shop(type, level);
+                this.shopsByName.put(shop.getTITLE(), shop);
+                this.shopsByTypeAndLevel.put(type.name() + "_" + level.name(), shop);
+            }
+        }
 
-		new ShopCommand("shop", "kingdomfactions.command.shop", "Main command for shops", "", true, true)
-				.registerCommand();
+        new ShopCommand("shop", "kingdomfactions.command.shop", "Main command for shops", "", true, true).registerCommand();
 
-		Bukkit.getPluginManager().registerEvents(new BlockPlace(), KingdomFactionsPlugin.getInstance());
-	}
+        Bukkit.getPluginManager().registerEvents(new BlockPlace(), KingdomFactionsPlugin.getInstance());
+    }
 
-	public Shop getShop(BuildingType type, BuildLevel level) {
-		for (Shop s : shops) {
-			if (type == s.getBuildingType() && level == s.getBuildLevel()) {
-				return s;
-			}
-		}
-		return null;
-	}
+    public Shop getShop(BuildingType type, BuildLevel level) {
+        return shopsByTypeAndLevel.get(type.name() + "_" + level.name());
+    }
 
-	public Shop getShop(String name) {
-		for (Shop s : this.shops) {
-			if (s.getTITLE().equalsIgnoreCase(name)) {
-				return s;
-			}
-		}
-		return null;
-	}
+    public Shop getShop(String name) {
+        return this.shopsByName.get(name);
+    }
 
-	public void reload(CommandSender sender) {
-		for (Shop shop : this.shops) {
-			sender.sendMessage(
-					ChatColor.GOLD + "Herladen van shop " + shop.getBuildingType() + " " + shop.getBuildLevel() + ".");
-			shop.reload();
-			sender.sendMessage(
-					ChatColor.GOLD + "Shop " + shop.getBuildingType() + " " + shop.getBuildLevel() + " herladen!");
-		}
+    public void reload(CommandSender sender) {
+        for (Shop shop : this.shopsByName.values()) {
+            sender.sendMessage(ChatColor.GOLD + "Herladen van shop " + shop.getBuildingType() + " " + shop.getBuildLevel() + ".");
+            shop.reload();
+            sender.sendMessage(ChatColor.GOLD + "Shop " + shop.getBuildingType() + " " + shop.getBuildLevel() + " herladen!");
+        }
+        sender.sendMessage(Messages.getInstance().getPrefix() + "Alle shops herladen!");
+    }
 
-		sender.sendMessage(Messages.getInstance().getPrefix() + "Alle shops herladen!");
-	}
+    public String getItemID(ItemStack is) {
+        return is.getDurability() + "" + is.getType() + "" + is.getAmount();
+    }
 
-	public String getItemID(ItemStack is) {
-		return is.getDurability() + "" + is.getType() + "" + is.getAmount();
-	}
+    public boolean canBuy(ShopItem shopItem, Faction faction) {
+        String itemID = shopItem.getItemID();
+        Map<String, Integer> shopLimits = faction.getShopLimits();
+        
+        int current = shopLimits.getOrDefault(itemID, 0);
+        int max = shopItem.getLimit();
 
-	public boolean canBuy(ShopItem shopItem, Faction faction) {
-		if (!faction.getShopLimits().containsKey(shopItem.getItemID())) {
-			faction.getShopLimits().put(shopItem.getItemID(), 1);
-			return true;
-		}
-
-		int current = faction.getShopLimits().get(shopItem.getItemID());
-		int max = shopItem.getLimit();
-
-		boolean canBuy = current < max;
-
-		if (canBuy)
-			faction.getShopLimits().replace(shopItem.getItemID(), current + 1);
-
-		return canBuy;
-	}
-
-	/**
-	 * You can check with the time from DB how many hours days minutes etc a
-	 * purchase was private void forLater() throws ParseException {
-	 * SimpleDateFormat format = new SimpleDateFormat("HH:mm/dd/MM/yyyy"); Date
-	 * past = format.parse("time from DB"); Date now = new Date();
-	 * 
-	 * System.out.println(TimeUnit.MILLISECONDS.toMillis(now.getTime() -
-	 * past.getTime()) + " milliseconds ago");
-	 * System.out.println(TimeUnit.MILLISECONDS.toMinutes(now.getTime() -
-	 * past.getTime()) + " minutes ago");
-	 * System.out.println(TimeUnit.MILLISECONDS.toHours(now.getTime() -
-	 * past.getTime()) + " hours ago");
-	 * System.out.println(TimeUnit.MILLISECONDS.toDays(now.getTime() -
-	 * past.getTime()) + " days ago"); }
-	 */
+        if (current < max) {
+            shopLimits.put(itemID, current + 1);
+            return true;
+        }
+        
+        return false;
+    }
 }

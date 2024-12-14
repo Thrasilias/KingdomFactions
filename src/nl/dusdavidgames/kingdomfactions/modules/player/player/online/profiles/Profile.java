@@ -5,12 +5,10 @@ import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFact
 
 public class Profile {
 
-	
-	public Profile(KingdomFactionsPlayer player) {
-		this.player = player;
-	}
-	
-	
-	@Getter
-	protected KingdomFactionsPlayer player;
+    @Getter
+    protected KingdomFactionsPlayer player;
+
+    public Profile(KingdomFactionsPlayer player) {
+        this.player = player;
+    }
 }

@@ -14,27 +14,49 @@ import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFact
 
 public class EntityTargetListener implements Listener {
 
-	
-	
-	@EventHandler
-	public void onTarget(EntityTargetEvent e) {
-		if(!(e.getTarget() instanceof Player)) return;
-			KingdomFactionsPlayer player = PlayerModule.getInstance().getPlayer((Player) e.getTarget());
-	        if(MonsterModule.getInstance().isGuard((LivingEntity) e.getEntity())) return;
-	        if(MonsterModule.getInstance().isGuard((LivingEntity)e.getTarget())) e.setCancelled(true);
-	        INexus guard = MonsterModule.getInstance().getGuard((LivingEntity) e.getEntity()).getNexus();
-	        switch(guard.getType()) {
-			case CAPITAL:
-				if(player.getKingdom().getType() == ((CapitalNexus) guard).getKingdom()) {
-					e.setCancelled(true);
-				}
-				break;
-			case FACTION:
-				if(player.getFaction().equals(((Nexus)guard).getOwner())) {
-					e.setCancelled(true);
-				}
-				break;
-	        
-	        }
-		}
-	}
+    @EventHandler
+    public void onTarget(EntityTargetEvent e) {
+        // Check if the target is a player
+        if (!(e.getTarget() instanceof Player)) {
+            return;
+        }
+
+        Player targetPlayer = (Player) e.getTarget();
+        KingdomFactionsPlayer player = PlayerModule.getInstance().getPlayer(targetPlayer);
+
+        // Check if the entity is a guard, if so skip further checks
+        if (MonsterModule.getInstance().isGuard((LivingEntity) e.getEntity())) {
+            return;
+        }
+
+        // If the target player is a guard, cancel the event
+        if (MonsterModule.getInstance().isGuard((LivingEntity) e.getTarget())) {
+            e.setCancelled(true);
+            return;
+        }
+
+        // Get the Nexus of the guard
+        INexus guardNexus = MonsterModule.getInstance().getGuard((LivingEntity) e.getEntity()).getNexus();
+        if (guardNexus == null) {
+            return;
+        }
+
+        // Check if the guard belongs to the same kingdom or faction as the player
+        switch (guardNexus.getType()) {
+            case CAPITAL:
+                // Capital nexus check: if the player's kingdom matches the guard's kingdom, cancel the event
+                if (player.getKingdom() != null && player.getKingdom().getType() == ((CapitalNexus) guardNexus).getKingdom()) {
+                    e.setCancelled(true);
+                }
+                break;
+            case FACTION:
+                // Faction nexus check: if the player's faction matches the guard's faction, cancel the event
+                if (player.getFaction() != null && player.getFaction().equals(((Nexus) guardNexus).getOwner())) {
+                    e.setCancelled(true);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+}

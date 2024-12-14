@@ -8,7 +8,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 
@@ -18,72 +17,92 @@ import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFact
 
 public class AddItemMenu implements Listener {
 
-	private String type;
-	private String level;
-	private int buyPrice;
-	private int sellprice;
-	private boolean useDisplayname;
-	private String playerName;
-	private String extraData;
-	private int limit;
+    private String type;
+    private String level;
+    private int buyPrice;
+    private int sellprice;
+    private boolean useDisplayname;
+    private String playerName;
+    private String extraData;
+    private int limit;
 
-	public AddItemMenu(KingdomFactionsPlayer player, String type, String level, int buyPrice, int sellprice,
-			boolean useDisplayname, String extraData, int limit) {
-		this.type = type;
-		this.level = level;
-		this.buyPrice = buyPrice;
-		this.sellprice = sellprice;
-		this.useDisplayname = useDisplayname;
-		this.playerName = player.getName();
-		this.extraData = extraData;
-		this.limit = limit;
-		player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "Zet het item op het EERSTE slot!");
+    public AddItemMenu(KingdomFactionsPlayer player, String type, String level, int buyPrice, int sellprice,
+                       boolean useDisplayname, String extraData, int limit) {
+        this.type = type;
+        this.level = level;
+        this.buyPrice = buyPrice;
+        this.sellprice = sellprice;
+        this.useDisplayname = useDisplayname;
+        this.playerName = player.getName();
+        this.extraData = extraData;
+        this.limit = limit;
 
-		player.openInventory(Bukkit.createInventory(null, InventoryType.DISPENSER, "addItem " + player.getName()));
+        player.sendMessage(ChatColor.RED + "" + ChatColor.BOLD + "Zet het item op het EERSTE slot!");
+        player.openInventory(Bukkit.createInventory(null, 9, "addItem " + player.getName()));
 
-		Bukkit.getPluginManager().registerEvents(this, KingdomFactionsPlugin.getInstance());
-	}
+        // Register the event listener
+        Bukkit.getPluginManager().registerEvents(this, KingdomFactionsPlugin.getInstance());
+    }
 
-	@EventHandler
-	public void onInventoryClose(InventoryCloseEvent event) {
-		if (!event.getInventory().getTitle().equalsIgnoreCase("addItem " + this.playerName))
-			return;
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent event) {
+        // Check if the inventory title matches
+        if (!event.getInventory().getTitle().equalsIgnoreCase("addItem " + this.playerName)) {
+            return;
+        }
 
-		if (event.getInventory().getItem(0) == null) {
-			event.getPlayer().sendMessage("Item NIET gemaakt!");
-			HandlerList.unregisterAll(this);
-			return;
-		}
+        ItemStack item = event.getInventory().getItem(0);
 
-		ItemStack item = event.getInventory().getItem(0);
+        // Validate item presence
+        if (item == null || item.getType() == Material.AIR) {
+            event.getPlayer().sendMessage("Item NIET gemaakt!");
+            unregisterListener();
+            return;
+        }
 
-		String enchantment = "";
-		String enchantmentLevels = "";
+        // Process enchantments
+        String enchantment = processEnchantments(item);
 
-		for (Enchantment enchants : item.getEnchantments().keySet()) {
-			enchantment = enchantment + "!" + enchants.getName().toUpperCase();
-			enchantmentLevels = enchantmentLevels + "!" + item.getEnchantmentLevel(enchants);
-		}
+        // Get display name if present
+        String displayname = item.hasItemMeta() && item.getItemMeta().hasDisplayName() 
+                            ? item.getItemMeta().getDisplayName() 
+                            : "";
 
-		String displayname = "";
-		if (item.hasItemMeta())
-			if (item.getItemMeta().hasDisplayName())
-				displayname = item.getItemMeta().getDisplayName();
+        // Handle enchanted books
+        if (item.getType() == Material.ENCHANTED_BOOK) {
+            enchantment = processEnchantedBook(item);
+        }
 
-		if (item.getType() == Material.ENCHANTED_BOOK) {
-			EnchantmentStorageMeta meta = (EnchantmentStorageMeta) item.getItemMeta();
-			meta.getStoredEnchants().toString();
+        // Save the item to the shop database
+        ShopDatabase.getInstance().save(type, level, item.getType(), item.getDurability(), item.getAmount(),
+                                        buyPrice, sellprice, "", displayname, enchantment, "", useDisplayname, extraData, limit);
 
-			for (Enchantment enchants : meta.getStoredEnchants().keySet()) {
-				enchantment = enchantment + "!" + enchants.getName().toUpperCase();
-				enchantmentLevels = enchantmentLevels + "!" + meta.getStoredEnchants().get(enchants);
-			}
-		}
-		ShopDatabase.getInstance().save(type, level, item.getType(), item.getDurability(), item.getAmount(), buyPrice,
-				sellprice, "", displayname, enchantment, enchantmentLevels, useDisplayname, extraData, limit);
+        // Inform the player
+        event.getPlayer().sendMessage("Item GEMAAKT :D");
 
-		event.getPlayer().sendMessage("Item GEMAAKT :D");
+        // Unregister the listener
+        unregisterListener();
+    }
 
-		HandlerList.unregisterAll(this);
-	}
+    private String processEnchantments(ItemStack item) {
+        StringBuilder enchantment = new StringBuilder();
+        for (Enchantment ench : item.getEnchantments().keySet()) {
+            enchantment.append("!").append(ench.getName().toUpperCase());
+        }
+        return enchantment.toString();
+    }
+
+    private String processEnchantedBook(ItemStack item) {
+        StringBuilder enchantment = new StringBuilder();
+        EnchantmentStorageMeta meta = (EnchantmentStorageMeta) item.getItemMeta();
+        for (Enchantment ench : meta.getStoredEnchants().keySet()) {
+            enchantment.append("!").append(ench.getName().toUpperCase());
+        }
+        return enchantment.toString();
+    }
+
+    // Method to unregister the listener
+    private void unregisterListener() {
+        HandlerList.unregisterAll(this);
+    }
 }

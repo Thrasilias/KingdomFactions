@@ -7,25 +7,46 @@ import lombok.Getter;
 import nl.dusdavidgames.kingdomfactions.modules.player.player.IPlayerBase;
 import nl.dusdavidgames.kingdomfactions.modules.utils.IRank;
 
+/**
+ * Event triggered when a player's rank is changed.
+ */
 public class RankChangeEvent extends Event {
-	public static final HandlerList list = new HandlerList();
-	private @Getter IPlayerBase player;
 
-	
-	private @Getter IRank rank;
-	public RankChangeEvent(IRank rank, IPlayerBase base) {
-		this.rank = rank;
-		this.player = base;
-	}
+    public static final HandlerList list = new HandlerList();
 
-	@Override
-	public HandlerList getHandlers() {
-		// TODO Auto-generated method stub
-		return list;
-	}
+    // The player whose rank has changed
+    private @Getter IPlayerBase player;
 
-	public static HandlerList getHandlerList() {
-		return list;
-	}
+    // The new rank of the player
+    private @Getter IRank rank;
 
+    /**
+     * Constructor for the RankChangeEvent.
+     * 
+     * @param rank The new rank of the player.
+     * @param base The player whose rank has changed.
+     */
+    public RankChangeEvent(IRank rank, IPlayerBase base) {
+        this.rank = rank;
+        this.player = base;
+    }
+
+    /**
+     * Gets the handler list for the event.
+     * 
+     * @return The handler list.
+     */
+    @Override
+    public HandlerList getHandlers() {
+        return list;
+    }
+
+    /**
+     * Gets the static handler list for this event type.
+     * 
+     * @return The static handler list.
+     */
+    public static HandlerList getHandlerList() {
+        return list;
+    }
 }

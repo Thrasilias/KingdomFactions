@@ -4,17 +4,20 @@ import nl.dusdavidgames.kingdomfactions.modules.configuration.ConfigModule;
 
 public class Debugger extends Logger {
 
-	public Debugger() {
-		super("[DEBUG]");
-	}
+    public Debugger() {
+        super("[DEBUG]");
+    }
 
-	@Override
-	public void log(String message) {
+    @Override
+    public void log(String message) {
+        // Get the debug setting from the config and log if true
+        boolean shouldDebug = ConfigModule.getInstance()
+            .getFile(ConfigModule.CONFIG)
+            .getConfig()
+            .getBoolean("log.debug");
 
-		boolean shouldDebug = false;
-		shouldDebug = ConfigModule.getInstance().getFile(ConfigModule.CONFIG).getConfig().getBoolean("log.debug");
-		if (shouldDebug) {
-			System.out.println("[KingdomFactions] " + prefix + " " + message);
-		}
-	}
+        if (shouldDebug) {
+            System.out.println("[KingdomFactions] " + prefix + " " + message);
+        }
+    }
 }

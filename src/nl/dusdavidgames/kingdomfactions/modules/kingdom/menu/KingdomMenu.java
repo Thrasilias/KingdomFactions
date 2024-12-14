@@ -1,7 +1,5 @@
 package nl.dusdavidgames.kingdomfactions.modules.kingdom.menu;
 
-import java.util.ArrayList;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -30,160 +28,122 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.enums.TitleDuration;
 
 public class KingdomMenu implements Listener {
 
-	private static @Getter @Setter KingdomMenu instance;
+    private static @Getter @Setter KingdomMenu instance;
 
-	public KingdomMenu() {
-		setInstance(this);
-	}
+    public KingdomMenu() {
+        setInstance(this);
+    }
 
-	@SuppressWarnings("deprecation")
-	@EventHandler
-	public void onClick(PlayerInteractEvent e) {
-		if (e.getAction() == Action.PHYSICAL)
-			return;
-		if (e.getPlayer().getItemInHand() == null)
-			return;
-		if (!e.getPlayer().getItemInHand().getType().equals(Material.COMPASS))
-			return;
-		if (!e.getPlayer().getItemInHand().hasItemMeta())
-			return;
-		if (!e.getPlayer().getItemInHand().getItemMeta().getDisplayName()
-				.equalsIgnoreCase(ChatColor.RED + "Selecteer jouw kingdom"))
-			return;
-		setKindomMenu(PlayerModule.getInstance().getPlayer(e.getPlayer()));
-		e.setCancelled(true);
-	}
+    @SuppressWarnings("deprecation")
+    @EventHandler
+    public void onClick(PlayerInteractEvent e) {
+        if (e.getAction() == Action.PHYSICAL || e.getPlayer().getItemInHand() == null || 
+            !e.getPlayer().getItemInHand().getType().equals(Material.COMPASS) || 
+            !e.getPlayer().getItemInHand().hasItemMeta() || 
+            !e.getPlayer().getItemInHand().getItemMeta().getDisplayName().equalsIgnoreCase(ChatColor.RED + "Selecteer jouw kingdom")) {
+            return;
+        }
+        setKingdomMenu(PlayerModule.getInstance().getPlayer(e.getPlayer()));
+        e.setCancelled(true);
+    }
 
-	public void setKindomMenu(KingdomFactionsPlayer p) {
-		Inventory in = Bukkit.createInventory(null, 45, ChatColor.BLUE + "Kies jouw Kingdom!");
-		for (int i = 0; i < 45; i++) {
-			in.setItem(i, Item.getInstance().getItem(Material.STAINED_GLASS_PANE, " ", 1, GlassColor.WHITE));
-		}
-		Item.getInstance().setPane(KingdomType.EREDON, 2, in);
-		Item.getInstance().setPane(KingdomType.DOK, 4, in);
-		Item.getInstance().setPane(KingdomType.TILIFIA, 6, in);
-		Item.getInstance().setPane(KingdomType.ADAMANTIUM, 20, in);
-		Item.getInstance().setPane(KingdomType.MALZAN, 22, in);
-		Item.getInstance().setPane(KingdomType.HYVAR, 24, in);
-		Item.getInstance().setPane(KingdomType.GEEN, 40, in);
-		p.openInventory(in);
-	}
+    public void setKingdomMenu(KingdomFactionsPlayer p) {
+        Inventory in = Bukkit.createInventory(null, 45, ChatColor.BLUE + "Kies jouw Kingdom!");
+        for (int i = 0; i < 45; i++) {
+            in.setItem(i, Item.getInstance().getItem(Material.STAINED_GLASS_PANE, " ", 1, GlassColor.WHITE));
+        }
 
-	@EventHandler
-	public void onInventoryClick(InventoryClickEvent e) {
-		if (!ChatColor.stripColor(e.getInventory().getName()).equalsIgnoreCase("Kies jouw Kingdom!")) {
-			return;
-		}
-		Player player = (Player) e.getWhoClicked();
-		KingdomFactionsPlayer p = PlayerModule.getInstance().getPlayer(player);
-		e.setCancelled(true);
+        // Set items for each kingdom in specific slots
+        for (KingdomType type : KingdomType.values()) {
+            if (type == KingdomType.GEEN || type == KingdomType.ERROR) continue; // Skip invalid kingdoms
+            int slot = getKingdomSlot(type);
+            Item.getInstance().setPane(type, slot, in);
+        }
+        p.openInventory(in);
+    }
 
-		if ((e.getCurrentItem() == null)) {
-			player.closeInventory();
-			return;
-		}
-		switch (e.getRawSlot()) {
-		case 2:
-			this.selectKingdom(p, KingdomType.EREDON);
-			break;
-		case 4:
-			this.selectKingdom(p, KingdomType.DOK);
-			break;
-		case 6:
-			this.selectKingdom(p, KingdomType.TILIFIA);
-			break;
-		case 20:
-			this.selectKingdom(p, KingdomType.ADAMANTIUM);
-			break;
-		case 22:
-		this.selectKingdom(p, KingdomType.MALZAN);
-			break;
-		case 24:
-		this.selectKingdom(p, KingdomType.HYVAR);
-			break;
-		case 40:
-			Kingdom k = getRandom();
-			try {
-				p.getMembershipProfile().setKingdom(k);
-			} catch (KingdomException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			p.getPlayer().closeInventory();
-			p.sendTitle(Title.TITLE, TitleDuration.SHORT, KingdomString(p.getKingdom()));
-			p.teleport(p.getKingdom().getSpawn());
-			p.getInventory().clear();
-			p.getPlayer().getInventory().setHelmet(null);
-			p.getPlayer().getInventory().setChestplate(null);
-			p.getPlayer().getInventory().setLeggings(null);
-			p.getPlayer().getInventory().setBoots(null);
-		}
-	}
+    private int getKingdomSlot(KingdomType type) {
+        switch (type) {
+            case EREDON: return 2;
+            case DOK: return 4;
+            case TILIFIA: return 6;
+            case ADAMANTIUM: return 20;
+            case MALZAN: return 22;
+            case HYVAR: return 24;
+            case GEEN: return 40; // Random kingdom
+            default: return -1; // Invalid kingdom
+        }
+    }
 
-	private String KingdomString(Kingdom k) {
-		switch (k.getType()) {
-		case ADAMANTIUM:
-			return ChatColor.DARK_RED + "A" + ChatColor.DARK_GRAY + "damantium";
-		case DOK:
-			return ChatColor.DARK_PURPLE + "Dok";
-		case EREDON:
-			return ChatColor.AQUA + "Eredon";
-		case GEEN:
-			break;
-		case HYVAR:
-			return ChatColor.GOLD + "Hyvar";
-		case MALZAN:
-			return ChatColor.YELLOW + "Malzan";
-		case TILIFIA:
-			return ChatColor.DARK_GREEN + "Tilifia";
-		default:
-			break;
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent e) {
+        if (!ChatColor.stripColor(e.getInventory().getName()).equalsIgnoreCase("Kies jouw Kingdom!")) {
+            return;
+        }
 
-		}
-		return "Er ging iets fout";
-	}
+        Player player = (Player) e.getWhoClicked();
+        KingdomFactionsPlayer p = PlayerModule.getInstance().getPlayer(player);
+        e.setCancelled(true);
 
-	private Kingdom getRandom() {
-		ArrayList<Kingdom> kingdoms = new ArrayList<Kingdom>();
-		for (Kingdom k : KingdomModule.getInstance().getKingdoms()) {
-			if (k.getType() == KingdomType.GEEN || k.getType() == KingdomType.ERROR)
-				continue;
-			kingdoms.add(k);
-		}
-		Randomizer<Kingdom> random = new Randomizer<Kingdom>(kingdoms);
-		if (!random.hasResult()) {
-			try {
-				throw new KingdomException("Unexpected issue occured!");
-			} catch (KingdomException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		return random.result();
+        if (e.getCurrentItem() == null) {
+            player.closeInventory();
+            return;
+        }
 
-	}
+        switch (e.getRawSlot()) {
+            case 2: selectKingdom(p, KingdomType.EREDON); break;
+            case 4: selectKingdom(p, KingdomType.DOK); break;
+            case 6: selectKingdom(p, KingdomType.TILIFIA); break;
+            case 20: selectKingdom(p, KingdomType.ADAMANTIUM); break;
+            case 22: selectKingdom(p, KingdomType.MALZAN); break;
+            case 24: selectKingdom(p, KingdomType.HYVAR); break;
+            case 40: selectKingdom(p, getRandom()); break;
+            default: break;
+        }
+    }
 
+    private String kingdomString(Kingdom k) {
+        return k.getType().getPrefix() + k.getType().name();
+    }
 
-	
-	private void selectKingdom(KingdomFactionsPlayer p, KingdomType t) {
-		this.selectKingdom(p, KingdomModule.getInstance().getKingdom(t));
-	}
-	private void selectKingdom(KingdomFactionsPlayer p, Kingdom k) {
-		try {
-			p.getMembershipProfile().setKingdom(k);
-		} catch (KingdomException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-		p.getPlayer().closeInventory();
-		p.sendTitle(Title.TITLE, TitleDuration.SHORT, KingdomString(p.getKingdom()));
-		p.sendMessage(Messages.getInstance().getPrefix() + "Je hebt het kingdom " + KingdomString(p.getKingdom())
-				+ ChatColor.WHITE + " gekozen!");
-		p.teleport(p.getKingdom().getSpawn());
-		p.getInventory().clear();
-		p.getPlayer().getInventory().setHelmet(null);
-		p.getPlayer().getInventory().setChestplate(null);
-		p.getPlayer().getInventory().setLeggings(null);
-		p.getPlayer().getInventory().setBoots(null);
-	}
+    private Kingdom getRandom() {
+        ArrayList<Kingdom> kingdoms = new ArrayList<>();
+        for (Kingdom k : KingdomModule.getInstance().getKingdoms()) {
+            if (k.getType() == KingdomType.GEEN || k.getType() == KingdomType.ERROR) continue;
+            kingdoms.add(k);
+        }
+        Randomizer<Kingdom> random = new Randomizer<>(kingdoms);
+        if (!random.hasResult()) {
+            handleError(new KingdomException("No kingdoms available"));
+            return null;
+        }
+        return random.result();
+    }
+
+    private void selectKingdom(KingdomFactionsPlayer p, Kingdom k) {
+        try {
+            p.getMembershipProfile().setKingdom(k);
+            p.getPlayer().closeInventory();
+            p.sendTitle(Title.TITLE, TitleDuration.SHORT, kingdomString(k));
+            p.sendMessage(Messages.getInstance().getPrefix() + "Je hebt het kingdom " + kingdomString(k) + ChatColor.WHITE + " gekozen!");
+            p.teleport(k.getSpawn());
+            clearInventory(p);
+        } catch (KingdomException e) {
+            handleError(e);
+        }
+    }
+
+    private void handleError(KingdomException e) {
+        // Handle error: log and inform the player
+        e.printStackTrace();
+        // Optionally, send a message to the player
+    }
+
+    private void clearInventory(KingdomFactionsPlayer p) {
+        p.getInventory().clear();
+        p.getPlayer().getInventory().setHelmet(null);
+        p.getPlayer().getInventory().setChestplate(null);
+        p.getPlayer().getInventory().setLeggings(null);
+        p.getPlayer().getInventory().setBoots(null);
+    }
 }

@@ -8,50 +8,59 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.Messages;
 
 public class SettingCommand extends KingdomFactionsCommand {
 
-	public SettingCommand(String name, String permission, String info, String usage, boolean sub,
-			boolean allowConsole) {
-		super(name, permission, info, usage, sub, allowConsole);
-		// TODO Auto-generated constructor stub
-	}
+    public SettingCommand(String name, String permission, String info, String usage, boolean sub, boolean allowConsole) {
+        super(name, permission, info, usage, sub, allowConsole);
+    }
 
-	@Override
-	public void init() {
-		this.registerSub(new SubCommand("set", "kingdomfactions.command.setting.set", "Verzet een instelling!") {
+    @Override
+    public void init() {
+        // Register 'set' subcommand to change settings
+        this.registerSub(new SubCommand("set", "kingdomfactions.command.setting.set", "Verzet een instelling!") {
 
-			@Override
-			public void execute(String[] args) throws KingdomFactionsException {
-				Setting s = null;
-				try {
-					s = Setting.valueOf(getArgs()[1].toUpperCase());
-				} catch (IllegalArgumentException e) {
-					getUser().sendMessage(Messages.getInstance().getPrefix() + "Onbekende optie!");
-					return;
-				}
-				boolean b = Boolean.parseBoolean(getArgs()[2]);
-				s.setEnabled(b);
-				getUser().sendMessage(Messages.getInstance().getPrefix() + "Optie " + s + " verzet naar " + b);
-			}
-		});
-		this.registerSub(new SubCommand("list", "kingdomfactions.command.setting.list",
-				"Verkrijg een lijst met alle instellingen!") {
+            @Override
+            public void execute(String[] args) throws KingdomFactionsException {
+                if (args.length < 3) {
+                    getUser().sendMessage(Messages.getInstance().getPrefix() + "Gebruik: /setting set <setting> <true/false>");
+                    return;
+                }
 
-			@Override
-			public void execute(String[] args) throws KingdomFactionsException {
-				getUser().sendMessage(ChatColor.BLUE + "" + ChatColor.BOLD + "---------------------------");
-				for (Setting s : Setting.values()) {
-					getUser().sendMessage(ChatColor.BLUE + s.toString() + ": " + s.isEnabled());
-				}
-				getUser().sendMessage(ChatColor.BLUE + "" + ChatColor.BOLD + "---------------------------");
+                Setting setting;
+                try {
+                    setting = Setting.valueOf(args[1].toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    getUser().sendMessage(Messages.getInstance().getPrefix() + "Onbekende optie: " + args[1]);
+                    return;
+                }
 
-			}
-		});
+                boolean enabled;
+                try {
+                    enabled = Boolean.parseBoolean(args[2]);
+                } catch (Exception e) {
+                    getUser().sendMessage(Messages.getInstance().getPrefix() + "Ongeldige waarde: " + args[2] + ". Gebruik true of false.");
+                    return;
+                }
 
-	}
+                setting.setEnabled(enabled);
+                getUser().sendMessage(Messages.getInstance().getPrefix() + "Optie " + setting.toString() + " verzet naar " + (enabled ? "AAN" : "UIT"));
+            }
+        });
 
-	@Override
-	public void execute() throws KingdomFactionsException {
-		// TODO Auto-generated method stub
+        // Register 'list' subcommand to list all settings
+        this.registerSub(new SubCommand("list", "kingdomfactions.command.setting.list", "Verkrijg een lijst met alle instellingen!") {
 
-	}
+            @Override
+            public void execute(String[] args) throws KingdomFactionsException {
+                getUser().sendMessage(ChatColor.BLUE + "" + ChatColor.BOLD + "---------------------------");
+                for (Setting setting : Setting.values()) {
+                    getUser().sendMessage(ChatColor.BLUE + setting.toString() + ": " + (setting.isEnabled() ? ChatColor.GREEN + "AAN" : ChatColor.RED + "UIT"));
+                }
+                getUser().sendMessage(ChatColor.BLUE + "" + ChatColor.BOLD + "---------------------------");
+            }
+        });
+    }
 
+    @Override
+    public void execute() throws KingdomFactionsException {
+        // You may want to define a default behavior or help message here if no subcommand is passed
+    }
 }

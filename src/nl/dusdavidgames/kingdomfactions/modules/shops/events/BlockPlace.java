@@ -15,58 +15,58 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.logger.Logger;
 
 public class BlockPlace implements Listener {
 
-	@EventHandler
-	public void onBlockPlace(BlockPlaceEvent event) {
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
 
-		if (event.getItemInHand().getType() != Material.MOB_SPAWNER)
-			return;
+        if (event.getItemInHand().getType() != Material.MOB_SPAWNER)
+            return;
 
-		ItemStack is = event.getItemInHand();
-		if (!is.hasItemMeta())
-			return;
+        ItemStack is = event.getItemInHand();
+        if (!is.hasItemMeta())
+            return;
 
-		ItemMeta im = is.getItemMeta();
+        ItemMeta im = is.getItemMeta();
+        if (!im.hasLore())
+            return;
 
-		if (!im.hasLore())
-			return;
+        // Get the lore and search for "Spawner:" keyword
+        String lore = String.join("", im.getLore());
 
-		String lore = im.getLore().toString();
+        if (!lore.contains("Spawner:"))
+            return;
 
-		if (!lore.contains("Spawner:"))
-			return;
+        EntityType entity = getEntityFromLore(lore);
 
-		EntityType entity = getEntity(lore);
+        if (entity == EntityType.AREA_EFFECT_CLOUD) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage("You cannot place this type of spawner.");
+            return;
+        }
 
-		if (entity == EntityType.AREA_EFFECT_CLOUD) {
-			event.setCancelled(true);
-			return;
-		}
+        setSpawner(event.getBlock(), entity);
+    }
 
-		setSpawner(event.getBlock(), entity);
-	}
+    private EntityType getEntityFromLore(String lore) {
+        String cleanedLore = lore.toUpperCase().replaceAll("[^A-Z]", "");  // Clean non-alphabet characters
 
-	private EntityType getEntity(String lore) {
-		String lores = lore.toUpperCase();
-		if (lores.contains("[SPAWNER: "))
-			lores = lores.replace("[SPAWNER: ", "");
-		if (lores.contains("]"))
-			lores = lores.replace("]", "");
+        Logger.DEBUG.log("Cleaned LORE: " + cleanedLore);
 
-		Logger.DEBUG.log("LORE: " + lores);
+        for (EntityType type : EntityType.values()) {
+            String typeName = type.name();
+            if (cleanedLore.equalsIgnoreCase(typeName)) {
+                return type;
+            }
+        }
 
-		for (EntityType type : EntityType.values()) {
-			String name = type + "";
-			if (lores.equalsIgnoreCase(name)) {
-				return type;
-			}
-		}
-		return EntityType.AREA_EFFECT_CLOUD;
-	}
+        return EntityType.AREA_EFFECT_CLOUD;  // Default invalid type if not found
+    }
 
-	public void setSpawner(Block block, EntityType ent) {
-		BlockState blockState = block.getState();
-		CreatureSpawner spawner = ((CreatureSpawner) blockState);
-		spawner.setSpawnedType(ent);
-		blockState.update();
-	}
+    public void setSpawner(Block block, EntityType ent) {
+        BlockState blockState = block.getState();
+        if (blockState instanceof CreatureSpawner) {
+            CreatureSpawner spawner = (CreatureSpawner) blockState;
+            spawner.setSpawnedType(ent);
+            blockState.update();
+        }
+    }
 }

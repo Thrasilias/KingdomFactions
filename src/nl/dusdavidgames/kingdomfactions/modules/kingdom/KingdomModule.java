@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.Optional;
 
 import org.bukkit.Location;
 
@@ -24,79 +25,70 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.Utils;
 
 public class KingdomModule {
 
-	private static @Getter @Setter KingdomModule instance;
+    private static @Getter @Setter KingdomModule instance;
 
-	public KingdomModule() {
+    @Getter
+    private ArrayList<Kingdom> kingdoms = new ArrayList<>();
 
-		setInstance(this);
-		loadKingdoms();
-		new KingdomCommand("kingdom", "kingdomfactions.command.kingdom", "Main Kingdom Command", "", true, false)
-				.registerCommand();
-		new KingdomMenuModule();
-		KingdomFactionsPlugin.getInstance().registerListener(new KingdomSwitchListener());
-		KingdomFactionsPlugin.getInstance().registerListener(new KingdomSwitchListener());
-		KingdomFactionsPlugin.getInstance().registerListener(new InteractEventListener());
-	}
+    public KingdomModule() {
+        setInstance(this);
+        loadKingdoms();
+        new KingdomCommand("kingdom", "kingdomfactions.command.kingdom", "Main Kingdom Command", "", true, false).registerCommand();
+        new KingdomMenuModule();
+        
+        // Register event listeners
+        KingdomFactionsPlugin.getInstance().registerListener(new KingdomSwitchListener());
+        KingdomFactionsPlugin.getInstance().registerListener(new InteractEventListener());
+    }
 
-	private @Getter ArrayList<Kingdom> kingdoms = new ArrayList<Kingdom>();
+    public Kingdom getSmallestKingdom() {
+        HashMap<Kingdom, Integer> size = new HashMap<>();
+        for (Kingdom k : kingdoms) {
+            size.put(k, k.getMembers());
+        }
 
-	public Kingdom getSmallestKingdom() {
-		HashMap<Kingdom, Integer> size = new HashMap<Kingdom, Integer>();
-		for (Kingdom k : KingdomModule.getInstance().getKingdoms()) {
-			size.put(k, k.getMembers());
-		}
-		int minValueInMap = (Collections.min(size.values()));
-		if (size.isEmpty()) {
-			return null;
-		}
-		for (Entry<Kingdom, Integer> entry : size.entrySet()) {
-			if (entry.getValue() == minValueInMap) {
-				entry.getKey(); // nexus
-				entry.getValue();// value
-				return entry.getKey();
+        Optional<Entry<Kingdom, Integer>> smallest = size.entrySet()
+                .stream()
+                .min(Entry.comparingByValue()); // Finds the smallest kingdom by members
 
-			}
-		}
-		return null;
-	}
+        return smallest.map(Entry::getKey).orElse(null); // Return smallest kingdom or null if none found
+    }
 
-	public void loadKingdoms() {
-		for (KingdomType t : KingdomType.values()) {
-			if(t == KingdomType.ERROR) continue;
-		      try {
-				kingdoms.add(KingdomDatabase.getInstance().loadKingdom(t));
-			} catch(UnkownKingdomException e) {
-				KingdomDatabase.getInstance().prepareKingdom(t.toString());
-				Kingdom k = new Kingdom(t, Utils.getInstance().getMiningWorld().getSpawnLocation(), 
-						new Location(Utils.getInstance().getOverWorld(), 0, 0, 0),
-						new Location(Utils.getInstance().getOverWorld(), 0, 0, 0));
-				kingdoms.add(k);
+    public void loadKingdoms() {
+        for (KingdomType type : KingdomType.values()) {
+            if (type == KingdomType.ERROR) continue;
 
-			}
-		}
-	}
+            try {
+                kingdoms.add(KingdomDatabase.getInstance().loadKingdom(type));
+            } catch (UnkownKingdomException e) {
+                KingdomDatabase.getInstance().prepareKingdom(type.toString());
+                Kingdom kingdom = new Kingdom(
+                        type,
+                        Utils.getInstance().getMiningWorld().getSpawnLocation(),
+                        new Location(Utils.getInstance().getOverWorld(), 0, 0, 0),
+                        new Location(Utils.getInstance().getOverWorld(), 0, 0, 0)
+                );
+                kingdoms.add(kingdom);
+            }
+        }
+    }
 
-	public Kingdom getKingdom(KingdomType kt) {
-		for (Kingdom k : kingdoms) {
-			if (k.getType().equals(kt)) {
-				return k;
-			}
-		}
-		return null;
-	}
+    public Kingdom getKingdom(KingdomType kingdomType) {
+        return kingdoms.stream()
+                .filter(k -> k.getType().equals(kingdomType))
+                .findFirst()
+                .orElse(null);
+    }
 
-	public Kingdom getKingdom(String kingdom) {
-		for (Kingdom k : kingdoms) {
-			if (k.getType().toString().equalsIgnoreCase(kingdom)) {
-				return k;
-			}
-		}
-		return null;
-	}
+    public Kingdom getKingdom(String kingdomName) {
+        return kingdoms.stream()
+                .filter(k -> k.getType().toString().equalsIgnoreCase(kingdomName))
+                .findFirst()
+                .orElse(null);
+    }
 
-
-	public void createAction(Kingdom k, KingdomFactionsPlayer player) {
-		SetCapitalAction action = new SetCapitalAction(k, player);
-		player.setAction(action);
-	}
+    public void createAction(Kingdom kingdom, KingdomFactionsPlayer player) {
+        SetCapitalAction action = new SetCapitalAction(kingdom, player);
+        player.setAction(action);
+    }
 }

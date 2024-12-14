@@ -1,7 +1,7 @@
 package nl.dusdavidgames.kingdomfactions.modules.player.deathban;
 
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -14,60 +14,50 @@ import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFact
 
 public class DeathBanModule {
 
-	public DeathBanModule() {
-		setInstance(this);
-		KingdomFactionsPlugin.getInstance().registerListener(new DeathBanLoginEventListener());
-		this.initDeathbanCleaner();
-	}
+    public DeathBanModule() {
+        setInstance(this);
+        KingdomFactionsPlugin.getInstance().registerListener(new DeathBanLoginEventListener());
+        this.initDeathbanCleaner();
+    }
 
-	private static @Getter @Setter DeathBanModule instance;
+    private static @Getter @Setter DeathBanModule instance;
 
-	private @Getter ArrayList<DeathBan> bans = new ArrayList<DeathBan>();
+    // Use a map for faster lookups
+    private @Getter Map<UUID, DeathBan> bans = new HashMap<>();
 
-	public DeathBan getBan(UUID uuid) {
-		for (DeathBan ban : bans) {
-			if (ban.getUuid().equals(uuid)) {
-				return ban;
-			}
-		}
-		return null;
+    public DeathBan getBan(UUID uuid) {
+        return bans.get(uuid);
+    }
 
-	}
+    public void ban(KingdomFactionsPlayer p) {
+        DeathBan ban = new DeathBan(p.getName(), p.getUuid(), 5);
+        bans.put(p.getUuid(), ban);
+        p.kick(ChatColor.RED + "Je bent dood gegaan! Wacht " + ban.getMinutes() + " minuten.");
+    }
 
-	public void ban(KingdomFactionsPlayer p) {
-		DeathBan ban = new DeathBan(p.getName(), p.getUuid(), 5);
-		bans.add(ban);
-		p.kick(ChatColor.RED + "Je bent dood gegaan! Wacht "+ban.getMinutes()+" minuten.");
-	}
+    public void unRegister(DeathBan ban) {
+        bans.remove(ban.getUuid());
+    }
 
-	public void unRegister(DeathBan ban) {
-		bans.remove(ban);
-	}
+    public DeathBan getBan(String name) {
+        // Iterate through the bans to find by name
+        for (DeathBan ban : bans.values()) {
+            if (ban.getName().equalsIgnoreCase(name)) {
+                return ban;
+            }
+        }
+        return null;
+    }
 
-	public DeathBan getBan(String name) {
-		for (DeathBan ban : bans) {
-			if (ban.getName().equalsIgnoreCase(name)) {
-				return ban;
-			}
-		}
-		return null;
+    @SuppressWarnings("deprecation")
+    private void initDeathbanCleaner() {
+        Bukkit.getScheduler().scheduleAsyncRepeatingTask(KingdomFactionsPlugin.getInstance(), new Runnable() {
 
-	}
-	
-	@SuppressWarnings("deprecation")
-	private void initDeathbanCleaner() {
-		Bukkit.getScheduler().scheduleAsyncRepeatingTask(KingdomFactionsPlugin.getInstance(), new Runnable() {
-			
-			@Override
-			public void run() {
-				Iterator<DeathBan> ban = bans.iterator();
-				while(ban.hasNext()) {
-					DeathBan b = ban.next();
-					if(!b.isActive()) {
-						b.unban();
-					}
-				}
-			}
-		}, 0, 20*60*5);
-	}
+            @Override
+            public void run() {
+                // Safely remove inactive bans
+                bans.entrySet().removeIf(entry -> !entry.getValue().isActive());
+            }
+        }, 0, 20 * 60 * 5); // run every 5 minutes
+    }
 }

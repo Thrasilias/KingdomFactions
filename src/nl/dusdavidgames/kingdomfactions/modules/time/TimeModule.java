@@ -10,26 +10,21 @@ import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFact
 
 public class TimeModule {
     private static @Getter @Setter TimeModule instance;
-	public TimeModule() {
-		setInstance(this);
-		new TimeHelper();
-		savePlayerTimes();
 
-	}
-	
-	private void savePlayerTimes() {
-		Bukkit.getScheduler().runTaskTimer(KingdomFactionsPlugin.getInstance(), new Runnable() {
-			@Override
-			public void run() {
-				for(KingdomFactionsPlayer p : PlayerModule.getInstance().getPlayers()) {
-					Bukkit.getScheduler().scheduleSyncDelayedTask(KingdomFactionsPlugin.getInstance(), new Runnable() {
-						@Override
-						public void run() {
-							TimeHelper.getInstance().updateTime(p);							
-						}
-					});
-				}				
-			}
-		}, 0L, 20L * 20); //Save once every 20 seconds
-	}
+    public TimeModule() {
+        setInstance(this);
+        new TimeHelper();
+        savePlayerTimes();
+    }
+
+    /**
+     * Schedules a task to update the time of all players every 20 seconds.
+     */
+    private void savePlayerTimes() {
+        Bukkit.getScheduler().runTaskTimer(KingdomFactionsPlugin.getInstance(), () -> {
+            for (KingdomFactionsPlayer player : PlayerModule.getInstance().getPlayers()) {
+                TimeHelper.getInstance().updateTime(player); // Directly update player time
+            }
+        }, 0L, 20L * 20); // Runs every 20 seconds
+    }
 }

@@ -2,12 +2,18 @@ package nl.dusdavidgames.kingdomfactions.modules.utils.rank.framework.ranks.staf
 
 import nl.dusdavidgames.kingdomfactions.modules.utils.rank.framework.frame.StaffRank;
 
+/**
+ * Represents the "Support" staff rank in the system.
+ */
 public class Support extends StaffRank {
 
-	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return "Support";
-	}
-
+    /**
+     * Returns the name of this staff rank.
+     *
+     * @return The name "Support".
+     */
+    @Override
+    public String getName() {
+        return "Support";
+    }
 }

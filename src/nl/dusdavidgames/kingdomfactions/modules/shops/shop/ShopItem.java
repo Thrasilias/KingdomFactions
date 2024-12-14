@@ -17,101 +17,107 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.logger.Logger;
 @Data
 public class ShopItem {
 
-	private ItemStack item;
-	private ItemStack displayItem;
+    private ItemStack item;
+    private ItemStack displayItem;
 
-	private int buyPrice;
-	private int sellPrice;
+    private int buyPrice;
+    private int sellPrice;
 
-	private int limit = -1;
+    private int limit = -1;
 
-	private String itemID;
-	
-	private int amount;
+    private String itemID;
 
-	public ShopItem(Material material, short value, int amount, int buyPrice, int sellPrice, String displayName,
-			List<String> lore, boolean useDisplayName, String enchantments, String enchantmentLevels, int limit,
-			String extraData) {
-		this.amount = amount;
-		ItemStack item = new ItemStack(material, amount, value);
-		ItemMeta itemMeta = item.getItemMeta();
+    private int amount;
 
-		if (useDisplayName) {
-			itemMeta.setDisplayName(displayName);
-		}
+    public ShopItem(Material material, short value, int amount, int buyPrice, int sellPrice, String displayName,
+            List<String> lore, boolean useDisplayName, String enchantments, String enchantmentLevels, int limit,
+            String extraData) {
+        this.amount = amount;
+        this.item = createItem(material, value, displayName, lore, useDisplayName, enchantments, enchantmentLevels, extraData);
+        this.displayItem = createDisplayItem(material, value, displayName, lore, enchantments, enchantmentLevels, extraData);
 
-		if (!extraData.equalsIgnoreCase("") && !extraData.equalsIgnoreCase(" ") && material == Material.MOB_SPAWNER) {
-			itemMeta.setLore(Arrays.asList("Spawner: " + extraData));
-		}
+        this.buyPrice = buyPrice;
+        this.sellPrice = sellPrice;
+        this.itemID = ShopsModule.getInstance().getItemID(item);
+        this.limit = limit;
+    }
 
-		item.setItemMeta(itemMeta);
-		addEnchantments(enchantments, enchantmentLevels, item);
-		this.item = item;
+    private ItemStack createItem(Material material, short value, String displayName, List<String> lore,
+            boolean useDisplayName, String enchantments, String enchantmentLevels, String extraData) {
+        ItemStack item = new ItemStack(material, amount, value);
+        ItemMeta itemMeta = item.getItemMeta();
 
-		lore.addAll(Arrays.asList("Linker muis knop - kopen " + buyPrice + " coins"));
-		if (sellPrice > 0)
-			lore.addAll(Arrays.asList("Rechter muis knop - verkopen " + sellPrice + " coins"));
+        if (useDisplayName) {
+            itemMeta.setDisplayName(displayName);
+        }
 
-		if (!extraData.equalsIgnoreCase("") && !extraData.equalsIgnoreCase(" ") && material == Material.MOB_SPAWNER) {
-			lore.addAll(Arrays.asList(" ", "Spawner: " + extraData));
-		}
+        if (!extraData.trim().isEmpty() && material == Material.MOB_SPAWNER) {
+            itemMeta.setLore(Arrays.asList("Spawner: " + extraData));
+        }
 
-		this.limit = limit;
+        item.setItemMeta(itemMeta);
+        addEnchantments(enchantments, enchantmentLevels, item);
+        return item;
+    }
 
-		if (isLimited()) {
-			lore.addAll(Arrays.asList("Jouw faction kan dit item maximaal " + limit + "X kopen"));
-		}
+    private ItemStack createDisplayItem(Material material, short value, String displayName, List<String> lore,
+            String enchantments, String enchantmentLevels, String extraData) {
+        lore.add("Linker muis knop - kopen " + buyPrice + " coins");
+        if (sellPrice > 0)
+            lore.add("Rechter muis knop - verkopen " + sellPrice + " coins");
 
-		ItemStack shopItem = new ItemStack(material, amount, value);
-		ItemMeta shopItemMeta = shopItem.getItemMeta();
-		shopItemMeta.setDisplayName(displayName);
-		shopItemMeta.setLore(lore);
-		shopItem.setItemMeta(shopItemMeta);
-		addEnchantments(enchantments, enchantmentLevels, shopItem);
-		this.displayItem = shopItem;
+        if (!extraData.trim().isEmpty() && material == Material.MOB_SPAWNER) {
+            lore.add(" ", "Spawner: " + extraData);
+        }
 
-		this.sellPrice = sellPrice;
-		this.buyPrice = buyPrice;
+        if (isLimited()) {
+            lore.add("Jouw faction kan dit item maximaal " + limit + "X kopen");
+        }
 
-		this.itemID = ShopsModule.getInstance().getItemID(item);
-	}
+        ItemStack shopItem = new ItemStack(material, amount, value);
+        ItemMeta shopItemMeta = shopItem.getItemMeta();
+        shopItemMeta.setDisplayName(displayName);
+        shopItemMeta.setLore(lore);
+        shopItem.setItemMeta(shopItemMeta);
 
-	private void addEnchantments(String enchantments, String level, ItemStack is) {
-		try {
-		if (enchantments == null || level == null)
-			return;
+        addEnchantments(enchantments, enchantmentLevels, shopItem);
+        return shopItem;
+    }
 
-		ArrayList<String> enchants = new ArrayList<String>(Arrays.asList(enchantments.split("!")));
-		ArrayList<String> levels = new ArrayList<String>(Arrays.asList(level.split("!")));
+    private void addEnchantments(String enchantments, String levels, ItemStack item) {
+        if (enchantments == null || levels == null || enchantments.trim().isEmpty())
+            return;
 
-		if (enchantments.isEmpty())
-			return;
+        try {
+            String[] enchantmentList = enchantments.split("!");
+            String[] levelList = levels.split("!");
 
-		for (int i = 0; i < enchants.size(); i++) {
-			if (!enchants.get(i).equalsIgnoreCase(" ") && !enchants.get(i).equalsIgnoreCase("")) {
-				if (is.getType() == Material.ENCHANTED_BOOK) {
-					EnchantmentStorageMeta meta = (EnchantmentStorageMeta) is.getItemMeta();
-					meta.addStoredEnchant(Enchantment.getByName(enchants.get(i)), Integer.parseInt(levels.get(i)), true);
-				    
-					is.setItemMeta(meta);
-				} else
-					is.addEnchantment(Enchantment.getByName(enchants.get(i)), Integer.parseInt(levels.get(i)));
-			}
-		}
+            for (int i = 0; i < enchantmentList.length; i++) {
+                String enchantmentName = enchantmentList[i].trim();
+                String levelStr = levelList[i].trim();
 
-		enchants.clear();
-		levels.clear();
-		} catch(Exception e) {
-			if(e instanceof java.lang.IllegalArgumentException) {
-			Logger.ERROR.log("couldn't add enchantment " + enchantments + " level " + level + " to " + is.getType().toString());
-		    Logger.ERROR.log("Cause: java.lang.IllegalArgumentException");
-			} else {
-			e.printStackTrace();
-			}
-		}
-	}
+                if (!enchantmentName.isEmpty() && !levelStr.isEmpty()) {
+                    Enchantment enchantment = Enchantment.getByName(enchantmentName);
+                    if (enchantment == null) {
+                        Logger.ERROR.log("Invalid enchantment: " + enchantmentName);
+                        continue;
+                    }
+                    int level = Integer.parseInt(levelStr);
+                    if (item.getType() == Material.ENCHANTED_BOOK) {
+                        EnchantmentStorageMeta meta = (EnchantmentStorageMeta) item.getItemMeta();
+                        meta.addStoredEnchant(enchantment, level, true);
+                        item.setItemMeta(meta);
+                    } else {
+                        item.addEnchantment(enchantment, level);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Logger.ERROR.log("Error adding enchantments to item " + item.getType() + ": " + e.getMessage());
+        }
+    }
 
-	public boolean isLimited() {
-		return this.limit != -1;
-	}
+    public boolean isLimited() {
+        return this.limit != -1;
+    }
 }

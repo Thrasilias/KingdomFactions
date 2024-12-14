@@ -2,12 +2,18 @@ package nl.dusdavidgames.kingdomfactions.modules.utils.rank.framework.ranks.staf
 
 import nl.dusdavidgames.kingdomfactions.modules.utils.rank.framework.frame.StaffRank;
 
-public class Moderator extends StaffRank{
+/**
+ * Represents the "Moderator" staff rank in the system.
+ */
+public class Moderator extends StaffRank {
 
-	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return "Moderator";
-	}
-
+    /**
+     * Returns the name of this staff rank.
+     *
+     * @return The name "Moderator".
+     */
+    @Override
+    public String getName() {
+        return "Moderator";
+    }
 }

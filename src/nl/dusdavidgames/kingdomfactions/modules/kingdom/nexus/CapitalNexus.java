@@ -25,115 +25,104 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.particles.ParticleEffect;
 
 public class CapitalNexus implements INexus {
 
-	public CapitalNexus(Location location, KingdomType kingdom) {
-		this.location = location;
-		this.health = 800;
-		this.kingdom = kingdom;
-		this.nexusId = kingdom.toString();
-	}
+    private @Getter Location location;
+    private @Setter @Getter int health;
+    private @Setter @Getter KingdomType kingdom;
+    private @Setter @Getter String nexusId;
+    private boolean destroy;
 
-	private @Getter Location location;
-	private @Setter @Getter int health;
-	private @Setter @Getter KingdomType kingdom;
-	private @Setter @Getter String nexusId;
-	private boolean destroy;
-	
-	private @Getter ArrayList<IGuard> guards = new ArrayList<IGuard>();
+    private @Getter ArrayList<IGuard> guards = new ArrayList<>();
 
-	@Override
-	public Location getNexusLocation() {
-		return location;
-	}
+    private static final int DEFAULT_RADIUS = 400;
+    private static final int GUARD_SPAWN_RADIUS = 4;
+    private static final int GUARD_COUNT = 5;
 
-	@Override
-	public int getProtectedRadius() {
-		// TODO Auto-generated method stub
-		try {
-			return KingdomFactionsPlugin.getInstance().getDataManager().getInteger("kingdom.capital.protected_region");
-		} catch (DataException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return 400;
-	}
+    public CapitalNexus(Location location, KingdomType kingdom) {
+        this.location = location;
+        this.health = 800;
+        this.kingdom = kingdom;
+        this.nexusId = kingdom.toString();
+    }
 
-	public double getDistance(KingdomFactionsPlayer p) {
-		Location player = Utils.getInstance().getNewLocation(p.getLocation());
-		Location nexus = Utils.getInstance().getNewLocation(this.getNexusLocation());
-		player.setY(0);
-		nexus.setY(0);
-		return nexus.distance(player);
-	}
+    @Override
+    public Location getNexusLocation() {
+        return location;
+    }
 
-	public double getDistance(Location location) {
-		Location loc = Utils.getInstance().getNewLocation(location);
-		Location nexus = Utils.getInstance().getNewLocation(this.getNexusLocation());
-		loc.setY(0);
-		nexus.setY(0);
-		return nexus.distance(loc);
-	}
+    @Override
+    public int getProtectedRadius() {
+        try {
+            return KingdomFactionsPlugin.getInstance().getDataManager().getInteger("kingdom.capital.protected_region");
+        } catch (DataException e) {
+            e.printStackTrace();
+            return DEFAULT_RADIUS;  // Default radius if fetching fails
+        }
+    }
 
-	@Override
-	public NexusType getType() {
-		// TODO Auto-generated method stub
-		return NexusType.CAPITAL;
-	}
+    public double getDistance(KingdomFactionsPlayer player) {
+        return getDistance(player.getLocation());
+    }
 
-	public boolean isDestroyed() {
-		return destroy;
-	}
+    public double getDistance(Location location) {
+        Location loc = Utils.getInstance().getNewLocation(location);
+        Location nexus = Utils.getInstance().getNewLocation(this.getNexusLocation());
+        loc.setY(0);
+        nexus.setY(0);
+        return nexus.distance(loc);
+    }
 
-	public void setDestroyed(boolean destroy) {
-		this.destroy = destroy;
-	}
-	
-	
-	
-	public ArrayList<CapitalGuard> spawnGuards() {
-		ArrayList<CapitalGuard> guards = new ArrayList<CapitalGuard>();
-		for(int i = 0; i <= 4; i++) {
-			CapitalGuard guard = spawnGuard();
-			guards.add(guard);
-			this.guards.add(guard);
-		}
-		return guards;
-	}
-	
-	private CapitalGuard spawnGuard() {
-		List<Location> list = Utils.getInstance().drawCircle(this.location, 4, 1, true, false, 0);
-		Location spawn = list.get(new Random().nextInt(list.size()));
-		Utils.getInstance().playParticle(spawn, ParticleEffect.WITCH_MAGIC);
-		CapitalGuard g = new CapitalGuard(this, getRandomType(), spawn);
-		g.spawn();
-		return g;
-	}
-	
-	
-	private GuardType getRandomType() {
-		Random r = new Random();
-		int i = r.nextInt(4);
-		if(i == 3) {
-			return GuardType.SKELETON;
-		}
-		return GuardType.ZOMBIE;
-	}
-	
-	public void save() {
-		KingdomDatabase.getInstance().saveNexus(this);
-	}
-	
-	public void setLocation(Location location) {
-		this.location = location;
-	}
+    @Override
+    public NexusType getType() {
+        return NexusType.CAPITAL;
+    }
 
-	@Override
-	public IInhabitable getOwner() {
-		return KingdomModule.getInstance().getKingdom(this.getKingdom());
-	}
-	
-	
-	@Override
-	public String toString() {
-		return Utils.getInstance().getLocationString(this.location) + "/" + this.nexusId;
-	}
+    public boolean isDestroyed() {
+        return destroy;
+    }
+
+    public void setDestroyed(boolean destroy) {
+        this.destroy = destroy;
+    }
+
+    public ArrayList<CapitalGuard> spawnGuards() {
+        ArrayList<CapitalGuard> spawnedGuards = new ArrayList<>();
+        for (int i = 0; i < GUARD_COUNT; i++) {
+            CapitalGuard guard = spawnGuard();
+            spawnedGuards.add(guard);
+            this.guards.add(guard);
+        }
+        return spawnedGuards;
+    }
+
+    private CapitalGuard spawnGuard() {
+        List<Location> spawnLocations = Utils.getInstance().drawCircle(this.location, GUARD_SPAWN_RADIUS, 1, true, false, 0);
+        Location spawnLocation = spawnLocations.get(new Random().nextInt(spawnLocations.size()));
+        Utils.getInstance().playParticle(spawnLocation, ParticleEffect.WITCH_MAGIC);
+        
+        CapitalGuard guard = new CapitalGuard(this, getRandomGuardType(), spawnLocation);
+        guard.spawn();
+        return guard;
+    }
+
+    private GuardType getRandomGuardType() {
+        return new Random().nextInt(4) == 3 ? GuardType.SKELETON : GuardType.ZOMBIE;
+    }
+
+    public void save() {
+        KingdomDatabase.getInstance().saveNexus(this);
+    }
+
+    public void setLocation(Location location) {
+        this.location = location;
+    }
+
+    @Override
+    public IInhabitable getOwner() {
+        return KingdomModule.getInstance().getKingdom(this.getKingdom());
+    }
+
+    @Override
+    public String toString() {
+        return Utils.getInstance().getLocationString(this.location) + "/" + this.nexusId;
+    }
 }

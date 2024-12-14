@@ -5,26 +5,49 @@ import lombok.Setter;
 import nl.dusdavidgames.kingdomfactions.modules.player.PlayerModule;
 import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFactionsPlayer;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class PermissionModule {
 
-	private static @Getter @Setter PermissionModule instance;
+    private static @Getter @Setter PermissionModule instance;
 
-	public PermissionModule() {
-		setInstance(this);
-	}
+    // Cached staff list
+    private Set<KingdomFactionsPlayer> staffCache = null;
 
-	public boolean isStaff(KingdomFactionsPlayer p) {
-		return p.hasPermission("kingdomfactions.role.lead") || p.hasPermission("kingdomfactions.role.pl") 
-			|| p.hasPermission("kingdomfactions.role.mod") || p.hasPermission("kingdomfactions.role.support");
-	}
-	
-	public StaffList getStaffMembers() {
-		StaffList list = new StaffList();
-		for(KingdomFactionsPlayer player : PlayerModule.getInstance().getPlayers()) {
-			if(!player.isStaff()) continue;
-			list.add(player);
-		}
-		return list;
-	}
+    public PermissionModule() {
+        setInstance(this);
+    }
 
+    // Define roles as constants
+    private static final Set<String> STAFF_ROLES = new HashSet<>();
+    static {
+        STAFF_ROLES.add("kingdomfactions.role.lead");
+        STAFF_ROLES.add("kingdomfactions.role.pl");
+        STAFF_ROLES.add("kingdomfactions.role.mod");
+        STAFF_ROLES.add("kingdomfactions.role.support");
+    }
+
+    public boolean isStaff(KingdomFactionsPlayer p) {
+        // Check if the player has any of the staff roles
+        for (String role : STAFF_ROLES) {
+            if (p.hasPermission(role)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public StaffList getStaffMembers() {
+        // Use cached staff list if available
+        if (staffCache == null) {
+            staffCache = new HashSet<>();
+            for (KingdomFactionsPlayer player : PlayerModule.getInstance().getPlayers()) {
+                if (isStaff(player)) {
+                    staffCache.add(player);
+                }
+            }
+        }
+        return new StaffList(staffCache);
+    }
 }

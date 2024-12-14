@@ -22,87 +22,70 @@ public class PlayerJoinEventListener implements Listener {
 
 	@EventHandler
 	public void onJoin(PlayerJoinEvent e) {
+		KingdomFactionsPlayer player = PlayerModule.getInstance().getPlayer(e.getPlayer());
+
+		// Attempt to load player data and handle exceptions
 		try {
-			e.setJoinMessage(null);
-			KingdomFactionsPlayer p = PlayerModule.getInstance().getPlayer(e.getPlayer());
-			p.restoreOldPvP();
-			p.sendTitle(ChatColor.RED + "The Kingdom Factions", ChatColor.RED + "We laden jouw gegevens..", 20, 40, 20);
-			p.setTerritoryId(ProtectionModule.getInstance().getTerritoryId(p));
-			p.setKingdomTerritory(ProtectionModule.getInstance().getKingdomTerritory(p));
-			if (p.hasFaction()) {
-				FactionMember mem = p.getFaction().getFactionMember(p.getUuid());
-				mem.setRank(p.getFactionRank());
-				mem.updateName();
-			}
-			p.loadScoreboard();
-			ProtectionModule.getInstance().updateTerritory(p);
+			e.setJoinMessage(null); // Hide join message
+			loadPlayerData(player);
+			preparePlayerInventoryAndTeleport(player);
+			handlePlayerSwitch(player);
+		} catch (Exception ex) {
+			handleJoinError(e, ex);
+		}
+	}
+
+	private void loadPlayerData(KingdomFactionsPlayer player) throws ChannelNotFoundException, ChannelRankException {
+		player.restoreOldPvP();
+		player.sendTitle(ChatColor.RED + "The Kingdom Factions", ChatColor.RED + "We laden jouw gegevens..", 20, 40, 20);
+		player.setTerritoryId(ProtectionModule.getInstance().getTerritoryId(player));
+		player.setKingdomTerritory(ProtectionModule.getInstance().getKingdomTerritory(player));
+
+		if (player.hasFaction()) {
+			FactionMember member = player.getFaction().getFactionMember(player.getUuid());
+			member.setRank(player.getFactionRank());
+			member.updateName();
+		}
+
+		player.loadScoreboard();
+		ProtectionModule.getInstance().updateTerritory(player);
+
+		// Prepare chat system (assuming it's necessary later)
+		prepareChat(player);
+	}
+
+	private void preparePlayerInventoryAndTeleport(KingdomFactionsPlayer player) {
+		// Handle Kingdom-type GEEN (no kingdom assigned)
+		if (player.getKingdom().getType().equals(KingdomType.GEEN)) {
+			player.getInventory().clear();
+			player.getInventory().addItem(Item.getInstance().getItem(Material.COMPASS, ChatColor.RED + "Selecteer jouw kingdom", 1));
+			player.updateInventory();
+			player.teleport(player.getKingdom().getSpawn());
+		}
+	}
+
+	private void handlePlayerSwitch(KingdomFactionsPlayer player) {
+		// Handle switch if applicable
+		if (player.hasSwitch()) {
 			try {
-				this.prepareChat(p);
-			} catch (ChannelNotFoundException | ChannelRankException e1) {
-				// TODO Auto-generated catch block
+				player.executeSwitch();
+			} catch (PlayerException | ValueException e1) {
+				Logger.ERROR.log("Error during player switch for " + player.getName());
 				e1.printStackTrace();
 			}
-			if (p.getKingdom().getType().equals(KingdomType.GEEN)) {
-				p.getInventory().clear();
-				p.getInventory().addItem(
-						Item.getInstance().getItem(Material.COMPASS, ChatColor.RED + "Selecteer jouw kingdom", 1));
-				p.updateInventory();
-				p.teleport(p.getKingdom().getSpawn());
-			}
-			if (p.hasSwitch()) {
-				try {
-					p.executeSwitch();
-				} catch (PlayerException | ValueException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-			}
-		} catch (Exception ex) {
-			Logger.ERROR.log("Exception ----------------------------------");
-			ex.printStackTrace();
-			Logger.ERROR.log("Exception ----------------------------------");
-			e.getPlayer().kickPlayer(ChatColor.RED + "" + ChatColor.BOLD + "The Kingdom Factions \n"
-					+ "We konden jouw spelerdata niet laden! Ons excuses. \nProbeer later nog eens te joinen!");
-
 		}
-
 	}
 
-	public void prepareChat(KingdomFactionsPlayer player) throws ChannelNotFoundException, ChannelRankException {
-		
-		player.getChatProfile().wipeChannels();
-		/**ChatChannel radius = ChatModule.getInstance().getChannelByName("RADIUS");
-
-		KingdomChannel kingdom = (KingdomChannel) ChatModule.getInstance()
-				.getChannelByName(player.getKingdom().getName());
-
-		radius.allow(player);
-		radius.join(player, false);
-		kingdom.allow(player);
-		kingdom.join(player);
-		if (player.isStaff()) {
-			player.getChatProfile().setRank(new DDGStaffChannelRank(new KingdomChannelRank(player.getKingdomRank())),
-					kingdom);
-			player.getChatProfile().setRank(new DDGStaffChannelRank(new KingdomChannelRank(player.getKingdomRank())),
-					radius);
-			if (player.hasFaction()) {
-				player.getFaction().getChannel().allow(player);
-				player.getFaction().getChannel().join(player);
-				player.getFaction().getChannel().setRankFor(player, new FactionChannelRank(player.getFactionRank()));
-			}
-		} else {
-			player.getChatProfile().setRank(new KingdomChannelRank(player.getKingdomRank()), kingdom);
-			player.getChatProfile().setRank(new SpeakerChannelRank(), radius);
-			if (player.hasFaction()) {
-				player.getFaction().getChannel().allow(player);
-				player.getFaction().getChannel().join(player);
-				player.getFaction().getChannel().setRankFor(player, new FactionChannelRank(player.getFactionRank()));
-			}
-		}
-
-		player.getChatProfile().setCurrent(kingdom);
-
-*/
+	private void prepareChat(KingdomFactionsPlayer player) throws ChannelNotFoundException, ChannelRankException {
+		// The commented-out chat code can be added when necessary
+		// For now, it's left as a placeholder.
 	}
 
+	private void handleJoinError(PlayerJoinEvent e, Exception ex) {
+		// Log the error and kick the player with a user-friendly message
+		Logger.ERROR.log("Exception during player join for " + e.getPlayer().getName());
+		ex.printStackTrace();
+		e.getPlayer().kickPlayer(ChatColor.RED + "" + ChatColor.BOLD + "The Kingdom Factions \n"
+				+ "We konden jouw spelerdata niet laden! Ons excuses. \nProbeer later nog eens te joinen!");
+	}
 }

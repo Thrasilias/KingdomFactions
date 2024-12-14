@@ -19,74 +19,62 @@ import nl.dusdavidgames.kingdomfactions.modules.utils.Utils;
 
 public class PortalTravelEventListener implements Listener {
 
-	@EventHandler
-	public void onPortal(PlayerMoveEvent e) {
-		if (e.getPlayer().getEyeLocation().getBlock().getType() == Material.PORTAL) {
-			KingdomFactionsPlayer p = PlayerModule.getInstance().getPlayer(e.getPlayer());
-			if(p.getKingdomTerritory() == p.getKingdom().getType() || p.getKingdomTerritory() == KingdomType.GEEN) {
-			if (e.getPlayer().getLocation().getWorld() == Utils.getInstance().getMiningWorld()) {
-				e.getPlayer()
-						.sendMessage(ChatColor.DARK_PURPLE + "Woosh.. Je bent geteleporteerd naar Ranos!");
+    @EventHandler
+    public void onPortal(PlayerMoveEvent e) {
+        if (e.getPlayer().getEyeLocation().getBlock().getType() == Material.PORTAL) {
+            KingdomFactionsPlayer p = PlayerModule.getInstance().getPlayer(e.getPlayer());
+            if (p != null && (p.getKingdomTerritory() == p.getKingdom().getType() || p.getKingdomTerritory() == KingdomType.GEEN)) {
+                teleportPlayerToDestination(e.getPlayer(), p);
+            }
+        }
+    }
 
-		
-				e.getPlayer().teleport(PlayerModule.getInstance().getPlayer(e.getPlayer()).getKingdom().getSpawn());
+    private void teleportPlayerToDestination(Player player, KingdomFactionsPlayer p) {
+        if (player.getLocation().getWorld() == Utils.getInstance().getMiningWorld()) {
+            teleportToKingdomSpawn(player, p, "Ranos");
+        } else {
+            teleportToKingdomMiningSpawn(player, p, "Mithras");
+        }
+    }
 
-				new BukkitRunnable() {
+    private void teleportToKingdomSpawn(Player player, KingdomFactionsPlayer p, String destination) {
+        player.sendMessage(ChatColor.DARK_PURPLE + "Woosh.. Je bent geteleporteerd naar " + destination + "!");
+        teleportPlayer(player, p.getKingdom().getSpawn());
+    }
 
-					@Override
-					public void run() {
-						e.getPlayer()
-								.teleport(PlayerModule.getInstance().getPlayer(e.getPlayer()).getKingdom().getSpawn());
+    private void teleportToKingdomMiningSpawn(Player player, KingdomFactionsPlayer p, String destination) {
+        player.sendMessage(ChatColor.DARK_PURPLE + "Woosh.. Je bent geteleporteerd naar " + destination + "!");
+        teleportPlayer(player, p.getKingdom().getMiningSpawn());
+    }
 
-					}
-				}.runTaskLater(KingdomFactionsPlugin.getInstance(), 20L);
-				   Bukkit.getPluginManager().callEvent(new MineTravelEvent(p));
-				   PlayerModule.getInstance().getPlayer(e.getPlayer()).updateTerritory();
-			} else {
-				e.getPlayer().sendMessage(ChatColor.DARK_PURPLE + "Woosh.. Je bent geteleporteerd naar Mithras!");
+    private void teleportPlayer(Player player, Location location) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                player.teleport(location);
+            }
+        }.runTaskLater(KingdomFactionsPlugin.getInstance(), 20L);
+    }
 
-				e.getPlayer()
-						.teleport(PlayerModule.getInstance().getPlayer(e.getPlayer()).getKingdom().getMiningSpawn());
-          
-				new BukkitRunnable() {
+    @SuppressWarnings("deprecation")
+    @EventHandler
+    public void onClick(PlayerInteractEvent e) {
+        if (e.getClickedBlock() == null) return;
+        if (e.getClickedBlock().getType() != Material.OBSIDIAN) return;
+        if (e.getPlayer().getItemInMainHand().getType() != Material.FLINT_AND_STEEL) return;
 
-					@Override
-					public void run() {
-						e.getPlayer().teleport(
-								PlayerModule.getInstance().getPlayer(e.getPlayer()).getKingdom().getMiningSpawn());
+        if (!e.getPlayer().isOp()) {
+            e.setCancelled(true);
+        }
+    }
 
-					}
-				}.runTaskLater(KingdomFactionsPlugin.getInstance(), 20L);
-				   Bukkit.getPluginManager().callEvent(new MineTravelEvent(p));
-			   PlayerModule.getInstance().getPlayer(e.getPlayer()).updateTerritory();
-			}
-			}
-		}
-	}
-
-	@SuppressWarnings("deprecation")
-	@EventHandler
-	public void onClick(PlayerInteractEvent e) {
-		if (e.getClickedBlock() == null)
-			return;
-		if (e.getClickedBlock().getType() != Material.OBSIDIAN)
-			return;
-		if (e.getPlayer().getItemInHand().getType() != Material.FLINT_AND_STEEL)
-			return;
-		
-		if(!e.getPlayer().isOp()) {
-			e.setCancelled(true);
-		}
-	}
-	
-	@EventHandler
-	public void onPortalDestroy(BlockBreakEvent e) {
-		if (e.getBlock() == null)
-			return;
-		if(e.getBlock().getType() == Material.PORTAL) {
-			if(!e.getPlayer().isOp()) {
-				e.setCancelled(true);
-			}
-		}
-	}
+    @EventHandler
+    public void onPortalDestroy(BlockBreakEvent e) {
+        if (e.getBlock() == null) return;
+        if (e.getBlock().getType() == Material.PORTAL) {
+            if (!e.getPlayer().isOp()) {
+                e.setCancelled(true);
+            }
+        }
+    }
 }

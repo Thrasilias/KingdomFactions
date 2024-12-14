@@ -26,184 +26,197 @@ import nl.dusdavidgames.kingdomfactions.modules.player.player.online.KingdomFact
 
 public class ChatProfile extends Profile {
 
-	public ChatProfile(KingdomFactionsPlayer player) {
-		super(player);
-	}
+    public ChatProfile(KingdomFactionsPlayer player) {
+        super(player);
+    }
 
-	private @Getter @Setter ChatChannel current;
-	public @Getter ArrayList<RankHolder> holders = new ArrayList<RankHolder>();
+    private @Getter @Setter ChatChannel current;
+    private @Getter ArrayList<RankHolder> holders = new ArrayList<>();
+    private @Getter @Setter KingdomFactionsPlayer replyPlayer;
 
-	private @Getter @Setter KingdomFactionsPlayer replyPlayer;
+    private Queue<String> lastChats = new LinkedList<>();
 
-	public ChannelList getChannels() {
-		ChannelList channels = new ChannelList();
-		for (ChatChannel c : ChatModule.getInstance().getChannels()) {
-			if (c.getJoinedPlayers().contains(this.player)) {
-				channels.add(c);
-			}
-		}
-		return channels;
-	}
+    // Get list of channels player is part of
+    public ChannelList getChannels() {
+        ChannelList channels = new ChannelList();
+        for (ChatChannel c : ChatModule.getInstance().getChannels()) {
+            if (c.getJoinedPlayers().contains(this.player)) {
+                channels.add(c);
+            }
+        }
+        return channels;
+    }
 
-	public void addChannel(ChatChannel channel) {
-		channel.join(this.player, false);
-	}
+    // Add player to a chat channel
+    public void addChannel(ChatChannel channel) {
+        channel.join(this.player, false);
+    }
 
-	public void removeChannel(ChatChannel channel) {
-		channel.leave(this.player);
-	}
+    // Remove player from a chat channel
+    public void removeChannel(ChatChannel channel) {
+        channel.leave(this.player);
+    }
 
-	public void setRank(ChannelRank rank, ChatChannel channel) {
-		if (hasRank(channel)) {
+    // Set rank for player in a specific channel
+    public void setRank(ChannelRank rank, ChatChannel channel) {
+        if (!hasRank(channel)) {
+            this.holders.add(new RankHolder(this, channel.getName(), rank));
+        }
+    }
 
-		}
-		this.holders.add(new RankHolder(this, channel.getName(), rank));
+    // Remove rank from player in a specific channel
+    public void removeRank(ChatChannel channel) {
+        RankHolder holder = getRankHolder(channel);
+        if (holder != null) {
+            holder.remove();
+        }
+    }
 
-	}
+    // Get rank of player in a specific channel
+    public ChannelRank getRank(ChatChannel channel) {
+        RankHolder rank = getRankHolder(channel);
+        return rank != null ? rank.getRank() : null;
+    }
 
-	public void removeRank(ChatChannel channel) {
-		RankHolder holder = getRankHolder(channel);
-		if (holder != null) {
-			getRankHolder(channel).remove();
-		}
-	}
+    // Get rank holder of player in a specific channel
+    public RankHolder getRankHolder(ChatChannel channel) {
+        for (RankHolder h : holders) {
+            if (channel.getName().equalsIgnoreCase(h.getChannel())) {
+                return h;
+            }
+        }
+        return null;
+    }
 
-	public ChannelRank getRank(ChatChannel channel) {
-		RankHolder rank = getRankHolder(channel);
-		if (rank != null) {
-			return rank.getRank();
-		}
-		return null;
-	}
+    // Check if player has a rank in the channel
+    public boolean hasRank(ChatChannel channel) {
+        return getRank(channel) != null;
+    }
 
-	public RankHolder getRankHolder(ChatChannel c) {
-		for (RankHolder h : getHolders()) {
-			if (c.getName().equalsIgnoreCase(h.getChannel())) {
-				return h;
-			}
-		}
-		return null;
-	}
+    // Check if player is currently typing a password
+    public boolean isTypingPassword() {
+        return player.getAction() instanceof PasswordAttemptSession;
+    }
 
-	public boolean hasRank(ChatChannel channel) {
-		return getRank(channel) != null;
-	}
+    // Check if player has joined a channel
+    public boolean hasJoinedChannel(ChatChannel channel) {
+        return channel.getJoinedPlayers().contains(this.getPlayer());
+    }
 
-	public boolean isTypingPassword() {
-		return player.getAction() instanceof PasswordAttemptSession;
-	}
+    // Check if player may join a channel based on whitelist
+    public boolean mayJoinChannel(ChatChannel channel) {
+        return channel.getWhitelist().contains(this.getPlayer().getUuid());
+    }
 
-	public boolean hasJoinedChannel(ChatChannel c) {
-		return c.getJoinedPlayers().contains(this.getPlayer());
-	}
+    // Wipe all channels and set the default channels for the player
+    public void wipeChannels() {
+        try {
+            // Remove player from all channels
+            ChatModule.getInstance().getChannels().forEach(channel -> channel.leave(player, false, false));
+            // Disallow player from all channels
+            ChatModule.getInstance().getChannels().forEach(channel -> channel.disAllow(player));
 
-	public boolean mayJoinChannel(ChatChannel c) {
-		return c.getWhitelist().contains(this.getPlayer().getUuid());
-	}
+            holders.clear();
 
-	public void wipeChannels() {
-		try {
-			ChatModule.getInstance().getChannels().forEach(channel -> channel.leave(getPlayer(), false, false));
-	        ChatModule.getInstance().getChannels().forEach(channel -> channel.disAllow(player));
-			getHolders().removeAll(getHolders());
-			ChatChannel radius = ChatModule.getInstance().getChannelByName("Radius");
+            // Join default channels
+            ChatChannel radius = ChatModule.getInstance().getChannelByName("Radius");
+            KingdomChannel kingdom = (KingdomChannel) ChatModule.getInstance().getChannelByName(player.getKingdom().getName());
 
-			KingdomChannel kingdom = (KingdomChannel) ChatModule.getInstance()
-					.getChannelByName(player.getKingdom().getName());
+            radius.allow(player);
+            radius.join(player, false);
+            kingdom.allow(player);
+            kingdom.join(player, false);
 
-			radius.allow(player);
-			radius.join(player, false);
-			kingdom.allow(player);
-			kingdom.join(player, false);
-			if (player.isStaff()) {
-				player.getChatProfile()
-						.setRank(new DDGStaffChannelRank(new KingdomChannelRank(player.getKingdomRank())), kingdom);
-				player.getChatProfile().setRank(new DDGStaffChannelRank(new SpeakerChannelRank()), radius);
-				if (player.hasFaction()) {
-					player.getFaction().getChannel().allow(player);
-					player.getFaction().getChannel().join(player, false);
-					player.getChatProfile().setRank(
-							new DDGStaffChannelRank(new FactionChannelRank(player.getFactionRank())),
-							player.getFaction().getChannel());
-				}
-			} else {
-				player.getChatProfile().setRank(new KingdomChannelRank(player.getKingdomRank()), kingdom);
-				player.getChatProfile().setRank(new SpeakerChannelRank(), radius);
-				if (player.hasFaction()) {
-					player.getFaction().getChannel().allow(player);
-					player.getFaction().getChannel().join(player, false);
-					player.getChatProfile().setRank(new FactionChannelRank(player.getFactionRank()),
-							player.getFaction().getChannel());
-				}
-			}
-			player.getChatProfile().setCurrent(kingdom);
-		} catch (ChannelException | ChannelNotFoundException e) {
-			e.printStackTrace();
-		}
+            // Set ranks based on player's status
+            if (player.isStaff()) {
+                player.getChatProfile().setRank(new DDGStaffChannelRank(new KingdomChannelRank(player.getKingdomRank())), kingdom);
+                player.getChatProfile().setRank(new DDGStaffChannelRank(new SpeakerChannelRank()), radius);
+                if (player.hasFaction()) {
+                    player.getFaction().getChannel().allow(player);
+                    player.getFaction().getChannel().join(player, false);
+                    player.getChatProfile().setRank(new DDGStaffChannelRank(new FactionChannelRank(player.getFactionRank())), player.getFaction().getChannel());
+                }
+            } else {
+                player.getChatProfile().setRank(new KingdomChannelRank(player.getKingdomRank()), kingdom);
+                player.getChatProfile().setRank(new SpeakerChannelRank(), radius);
+                if (player.hasFaction()) {
+                    player.getFaction().getChannel().allow(player);
+                    player.getFaction().getChannel().join(player, false);
+                    player.getChatProfile().setRank(new FactionChannelRank(player.getFactionRank()), player.getFaction().getChannel());
+                }
+            }
 
-	}
+            player.getChatProfile().setCurrent(kingdom);
 
-	private Queue<String> lastChats = new LinkedList<String>();
+        } catch (ChannelException | ChannelNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
 
-	public boolean mayChat(AsyncPlayerChatEvent e) {
-		if (this.player.hasCooldown("chatcooldown")) {
-			if (this.player.hasPermission("kingdomfactions.chat.nocooldown") || this.player.isStaff()) {
-				this.player.removeCooldown("chatcooldown");
-			} else {
-				this.player.sendMessage(getChatCooldownMessage(this.player.getCooldown("chatcooldown").getCooldown()));
-				e.setCancelled(true);
-				return false;
-			}
-		}
-		if (this.player.hasPermission("kingdomfactions.chat.nofilter") || this.player.isStaff()) {
-			lastChats.clear();
-			return true;
-		}
-		if (lastChats.contains(e.getMessage())) {
-			this.player.sendMessage(ChatColor.RED + "Spammen is niet toegestaan.");
-			e.setCancelled(true);
-			return false;
-		} else {
-			if (lastChats.size() > 4) {
-				lastChats.poll();
-			}
-			lastChats.add(e.getMessage());
-			return true;
-		}
+    // Check if player may chat based on cooldown and spam filter
+    public boolean mayChat(AsyncPlayerChatEvent e) {
+        if (this.player.hasCooldown("chatcooldown")) {
+            if (this.player.hasPermission("kingdomfactions.chat.nocooldown") || this.player.isStaff()) {
+                this.player.removeCooldown("chatcooldown");
+            } else {
+                this.player.sendMessage(getChatCooldownMessage(this.player.getCooldown("chatcooldown").getCooldown()));
+                e.setCancelled(true);
+                return false;
+            }
+        }
 
-	}
+        if (this.player.hasPermission("kingdomfactions.chat.nofilter") || this.player.isStaff()) {
+            lastChats.clear();
+            return true;
+        }
 
-	public boolean mayUseMsg(String message) {
-		if (this.player.hasCooldown("chatcooldown")) {
-			if (this.player.hasPermission("kingdomfactions.chat.nocooldown") || this.player.isStaff()) {
-				this.player.removeCooldown("chatcooldown");
-			} else {
-				this.player.sendMessage(getChatCooldownMessage(this.player.getCooldown("chatcooldown").getCooldown()));
-				return false;
-			}
-		}
-		if (this.player.hasPermission("kingdomfactions.chat.nofilter") || this.player.isStaff()) {
-			lastChats.clear();
-			return true;
-		}
-		if (lastChats.contains(message)) {
-			this.player.sendMessage(ChatColor.RED + "Spammen is niet toegestaan.");
+        if (lastChats.contains(e.getMessage())) {
+            this.player.sendMessage(ChatColor.RED + "Spammen is niet toegestaan.");
+            e.setCancelled(true);
+            return false;
+        } else {
+            if (lastChats.size() > 4) {
+                lastChats.poll();
+            }
+            lastChats.add(e.getMessage());
+            return true;
+        }
+    }
 
-			return false;
-		} else {
-			if (lastChats.size() > 4) {
-				lastChats.poll();
-			}
-			lastChats.add(message);
-			return true;
-		}
-	}
+    // Check if player may use a specific message based on cooldown and spam filter
+    public boolean mayUseMsg(String message) {
+        if (this.player.hasCooldown("chatcooldown")) {
+            if (this.player.hasPermission("kingdomfactions.chat.nocooldown") || this.player.isStaff()) {
+                this.player.removeCooldown("chatcooldown");
+            } else {
+                this.player.sendMessage(getChatCooldownMessage(this.player.getCooldown("chatcooldown").getCooldown()));
+                return false;
+            }
+        }
 
-	private String getChatCooldownMessage(int i) {
-		if (i == 1) {
-			return ChatColor.RED + "Je moet nog " + ChatColor.GRAY + "1 seconde" + ChatColor.RED + " wachten";
-		} else {
-			return ChatColor.RED + "Je moet nog " + ChatColor.GRAY + i + " seconden" + ChatColor.RED + " wachten";
-		}
-	}
+        if (this.player.hasPermission("kingdomfactions.chat.nofilter") || this.player.isStaff()) {
+            lastChats.clear();
+            return true;
+        }
+
+        if (lastChats.contains(message)) {
+            this.player.sendMessage(ChatColor.RED + "Spammen is niet toegestaan.");
+            return false;
+        } else {
+            if (lastChats.size() > 4) {
+                lastChats.poll();
+            }
+            lastChats.add(message);
+            return true;
+        }
+    }
+
+    // Get the cooldown message
+    private String getChatCooldownMessage(int cooldownTime) {
+        if (cooldownTime == 1) {
+            return ChatColor.RED + "Je moet nog " + ChatColor.GRAY + "1 seconde" + ChatColor.RED + " wachten";
+        } else {
+            return ChatColor.RED + "Je moet nog " + ChatColor.GRAY + cooldownTime + " seconden" + ChatColor.RED + " wachten";
+        }
+    }
 }

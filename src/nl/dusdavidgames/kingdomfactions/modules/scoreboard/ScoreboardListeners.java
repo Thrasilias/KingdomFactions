@@ -29,26 +29,23 @@ public class ScoreboardListeners implements Listener {
 	@EventHandler
 	public void onInfluenceEdit(InfluenceEditEvent e) {
 		KingdomFactionsPlayer p = e.getPlayer();
-		p.getScoreboard().editLine(1,
-				ChatColor.GRAY + "Influence: " + ChatColor.RED + p.getStatisticsProfile().getInfluence());
+		p.getScoreboard().editLine(1, ChatColor.GRAY + "Influence: " + ChatColor.RED + p.getStatisticsProfile().getInfluence());
 	}
 
 	@EventHandler
 	public void onFactionSwitch(FactionSwitchEvent e) {
 		KingdomFactionsPlayer p = e.getPlayer();
 		Faction f = e.getNewFaction();
-		if (f != null) {
-			p.getScoreboard().editLine(8, ChatColor.GRAY + "[" +p.getKingdom().getType().getColor()+ f.getName() + ChatColor.GRAY + "]");
-		} else {
-			p.getScoreboard().editLine(8, p.getKingdom().getType().getColor() + "Geen Faction!");
-		}
+		String factionName = (f != null) ? ChatColor.GRAY + "[" + p.getKingdom().getType().getColor() + f.getName() + ChatColor.GRAY + "]"
+										: p.getKingdom().getType().getColor() + "Geen Faction!";
+		p.getScoreboard().editLine(8, factionName);
 	}
-	
+
 	@EventHandler
 	public void onMineTravel(MineTravelEvent e) {
-		e.getPlayer().getScoreboard().editLine(5, ChatColor.GRAY + "Wereld: " +ScoreboardModule.getInstance().getWorld(e.getPlayer().getLocation().getWorld()));
+		e.getPlayer().getScoreboard().editLine(5, ChatColor.GRAY + "Wereld: " + ScoreboardModule.getInstance().getWorld(e.getPlayer().getLocation().getWorld()));
 	}
-    
+
 	@EventHandler
 	public void onTerritorySwitch(TerritoryUpdateEvent e) {
 		e.getPlayer().getScoreboard().editLine(4, ScoreboardModule.getInstance()
@@ -57,11 +54,7 @@ public class ScoreboardListeners implements Listener {
 
 	@EventHandler
 	public void onWarStart(WarStartEvent e) {
-		for (KingdomFactionsPlayer p : PlayerModule.getInstance().getPlayers()) {
-			p.getScoreboard().editLine(12, ChatColor.GRAY + "Oorlog:");
-			p.getScoreboard().editLine(11,
-					ChatColor.GRAY + "Resterende tijd: " + WarModule.getInstance().getWar().getRemainingTime());
-		}
+		updateWarLines();
 	}
 
 	@EventHandler
@@ -74,17 +67,18 @@ public class ScoreboardListeners implements Listener {
 
 	@EventHandler
 	public void onWarDurationChange(WarDurationChangeEvent e) {
-		for (KingdomFactionsPlayer p : PlayerModule.getInstance().getPlayers()) {
-			p.getScoreboard().editLine(12, ChatColor.GRAY + "Oorlog:");
-			p.getScoreboard().editLine(11,
-					ChatColor.GRAY + "Resterende tijd: " + WarModule.getInstance().getWar().getRemainingTime());
-		}
+		updateWarLines();
 	}
-	
-	
+
 	@EventHandler
 	public void onTeleport(DelayedPlayerTeleportEvent e) {
 		e.getPlayer().updateScoreboard();
 	}
 
+	private void updateWarLines() {
+		for (KingdomFactionsPlayer p : PlayerModule.getInstance().getPlayers()) {
+			p.getScoreboard().editLine(12, ChatColor.GRAY + "Oorlog:");
+			p.getScoreboard().editLine(11, ChatColor.GRAY + "Resterende tijd: " + WarModule.getInstance().getWar().getRemainingTime());
+		}
+	}
 }

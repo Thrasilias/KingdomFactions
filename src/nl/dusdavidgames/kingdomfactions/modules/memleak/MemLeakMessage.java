@@ -1,6 +1,7 @@
 package nl.dusdavidgames.kingdomfactions.modules.memleak;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Queue;
 
 import org.bukkit.command.CommandSender;
@@ -24,107 +25,121 @@ import nl.dusdavidgames.kingdomfactions.modules.shops.shoplogger.ShopLogger;
 
 public class MemLeakMessage {
 
-	private static @Getter @Setter MemLeakMessage instance;
+    private static @Getter @Setter MemLeakMessage instance;
 
-	public MemLeakMessage() {
-		setInstance(this);
-	}
+    public MemLeakMessage() {
+        setInstance(this);
+    }
 
-	public void sendMessage(CommandSender sender) {
-		sender.sendMessage("--------");
-		send("Channels", ChatModule.getInstance().getChannels(), sender);
-		sender.sendMessage("--------");
-		send("Commands", CommandModule.getInstance().getCommand(), sender);
-		sender.sendMessage("--------");
-		send("Data list", KingdomFactionsPlugin.getInstance().getDataManager().getDataList(), sender);
-		sender.sendMessage("--------");
-		send("Spells", SpellModule.getInstance().getSpells(), sender);
-		sender.sendMessage("--------");
-		send("Factions object", FactionModule.getInstance().getFactions(), sender);
-		sender.sendMessage("--------");
-		send("Kingdoms", KingdomModule.getInstance().getKingdoms(), sender);
-	//	send("Kingdom menu", KingdomMenuModule.getInstance().getItems(), sender);
-		send("Kingdom guards", getKingdomGuards(), sender);
-		sender.sendMessage("--------");
-		send("Nexuses", NexusModule.getInstance().getNexuses(), sender);
-    //  send("Nexus update owner", NexusModule.getInstance().getUpdateOwner(), sender);
-	//	send("Nexus edit health", NexusModule.getInstance().getEditHealth(), sender);
-	//	send("Nexus info", NexusModule.getInstance().getNexusInfo(), sender);
-		sender.sendMessage("--------");
-		send("Deathbans", DeathBanModule.getInstance().getBans(), sender);
-		sender.sendMessage("--------");
-		send("Player list", PlayerModule.getInstance().getPlayers(), sender);
-		send("Player queue", PlayerModule.getInstance().getQueue(), sender);
-		send("Player cooldowns", getCooldowns(), sender);
-		send("Player chatprofile holders", getChatHolders(), sender);
-		send("Player meta data", getMetaData(), sender);
-		sender.sendMessage("--------");
-		send("Shops", ShopsModule.getInstance().getShops(), sender);
-		send("Shop items", getShopItems(), sender);
-		send("Shop logs", ShopLogger.getInstance().getShopLogs(), sender);
-	}
-	
-	private int getShopItems(){
-		int i = 0;
-		
-		for(Shop shop : ShopsModule.getInstance().getShops()){
-			i += shop.getShopItemAmount();
-		}
-		
-		return i;
-	}
+    /**
+     * Sends various statistics to the command sender to help monitor system performance and detect memory leaks.
+     * @param sender The command sender to whom the statistics will be sent.
+     */
+    public void sendMessage(CommandSender sender) {
+        sender.sendMessage("--------");
+        sendData("Channels", ChatModule.getInstance().getChannels(), sender);
+        sendData("Commands", CommandModule.getInstance().getCommand(), sender);
+        sendData("Data list", KingdomFactionsPlugin.getInstance().getDataManager().getDataList(), sender);
+        sendData("Spells", SpellModule.getInstance().getSpells(), sender);
+        sendData("Factions", FactionModule.getInstance().getFactions(), sender);
+        sendData("Kingdoms", KingdomModule.getInstance().getKingdoms(), sender);
+        sendData("Kingdom guards", getKingdomGuards(), sender);
+        sendData("Nexuses", NexusModule.getInstance().getNexuses(), sender);
+        sendData("Deathbans", DeathBanModule.getInstance().getBans(), sender);
+        sendData("Players", PlayerModule.getInstance().getPlayers(), sender);
+        sendData("Shops", ShopsModule.getInstance().getShops(), sender);
+        sendData("Shop logs", ShopLogger.getInstance().getShopLogs(), sender);
+    }
 
-	private int getKingdomGuards() {
-		int i = 0;
-		for (Kingdom kingdom : KingdomModule.getInstance().getKingdoms()) {
-			i += kingdom.getNexus().getGuards().size();
-		}
-		return i;
-	}
-	
-	private int getCooldowns(){
-		int i = 0;
-		
-		for(KingdomFactionsPlayer player : PlayerModule.getInstance().getPlayers()){
-			i += player.getCooldowns().size();
-		}
-		
-		return i;
-	}
-	
-	private int getChatHolders(){
-		int i = 0;
-		
-		for(KingdomFactionsPlayer player : PlayerModule.getInstance().getPlayers()){
-			i += player.getChatProfile().getHolders().size();
-		}
-		
-		return i;
-	}
-	
-	private int getMetaData(){
-		int i = 0;
-		
-		for(KingdomFactionsPlayer player : PlayerModule.getInstance().getPlayers()){
-			i += player.getMetaData().size();
-		}
-		
-		return i;
-	}
+    /**
+     * Helper method to send the size of different types of collections to the sender.
+     * @param name The name of the data to send.
+     * @param list The collection whose size will be sent.
+     * @param sender The command sender to whom the data will be sent.
+     */
+    private <T> void sendData(String name, Iterable<T> list, CommandSender sender) {
+        if (list != null) {
+            sender.sendMessage(name + " : " + ((Collection<?>)list).size());
+        } else {
+            sender.sendMessage(name + " : Error fetching data.");
+        }
+    }
 
-	private void send(String name, ArrayList<?> list, CommandSender sender) {
-		sender.sendMessage(name + " : " + list.size());
-	}
+    /**
+     * Helper method to send the size of a queue to the sender.
+     * @param name The name of the data to send.
+     * @param queue The queue whose size will be sent.
+     * @param sender The command sender to whom the data will be sent.
+     */
+    private void sendData(String name, Queue<?> queue, CommandSender sender) {
+        if (queue != null) {
+            sender.sendMessage(name + " : " + queue.size());
+        } else {
+            sender.sendMessage(name + " : Error fetching data.");
+        }
+    }
 
-	private void send(String name, int i, CommandSender sender) {
-		sender.sendMessage(name + " : " + i);
-	}
+    /**
+     * Gets the total number of kingdom guards from all kingdoms.
+     * @return The total number of kingdom guards.
+     */
+    private int getKingdomGuards() {
+        int guardCount = 0;
+        for (Kingdom kingdom : KingdomModule.getInstance().getKingdoms()) {
+            if (kingdom.getNexus() != null) {
+                guardCount += kingdom.getNexus().getGuards().size();
+            }
+        }
+        return guardCount;
+    }
 
-	//private void send(String name, HashMap<?, ?> list, CommandSender sender) {
-	//	sender.sendMessage(name + ": " + list.size());
-	//}
-	
-	private void send(String name, Queue<?> list, CommandSender sender) {
-		sender.sendMessage(name + " : " + list.size());
-	}
+    /**
+     * Gets the total number of shop items from all shops.
+     * @return The total number of shop items.
+     */
+    private int getShopItems() {
+        int itemCount = 0;
+        if (ShopsModule.getInstance().getShops() != null) {
+            for (Shop shop : ShopsModule.getInstance().getShops()) {
+                itemCount += shop.getShopItemAmount();
+            }
+        }
+        return itemCount;
+    }
+
+    /**
+     * Gets the total number of cooldowns from all players.
+     * @return The total number of player cooldowns.
+     */
+    private int getCooldowns() {
+        int cooldownCount = 0;
+        for (KingdomFactionsPlayer player : PlayerModule.getInstance().getPlayers()) {
+            cooldownCount += player.getCooldowns().size();
+        }
+        return cooldownCount;
+    }
+
+    /**
+     * Gets the total number of chat profile holders from all players.
+     * @return The total number of chat profile holders.
+     */
+    private int getChatHolders() {
+        int holderCount = 0;
+        for (KingdomFactionsPlayer player : PlayerModule.getInstance().getPlayers()) {
+            holderCount += player.getChatProfile().getHolders().size();
+        }
+        return holderCount;
+    }
+
+    /**
+     * Gets the total number of metadata items from all players.
+     * @return The total number of player metadata.
+     */
+    private int getMetaData() {
+        int metaDataCount = 0;
+        for (KingdomFactionsPlayer player : PlayerModule.getInstance().getPlayers()) {
+            metaDataCount += player.getMetaData().size();
+        }
+        return metaDataCount;
+    }
 }

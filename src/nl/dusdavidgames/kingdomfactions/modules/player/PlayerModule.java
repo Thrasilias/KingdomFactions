@@ -37,215 +37,189 @@ import nl.dusdavidgames.kingdomfactions.modules.player.runnables.ScheduledSaveRu
 
 public class PlayerModule {
 
-	private @Getter PlayerList players = new PlayerList();
-	private static @Getter @Setter PlayerModule instance;
-	private @Getter Queue<KingdomFactionsPlayer> queue = new LinkedList<KingdomFactionsPlayer>();
+    private @Getter PlayerList players = new PlayerList();
+    private static @Getter @Setter PlayerModule instance;
+    private @Getter Queue<KingdomFactionsPlayer> queue = new LinkedList<>();
+    
+    public boolean saving = false;
 
-	
-	public boolean saving = false; 
-	
-	@SuppressWarnings("deprecation")
-	public PlayerModule() {
-		setInstance(this);
-		
-		new DeathBanModule();
-		
-		new GodModeRunnable();
-		Bukkit.getScheduler().scheduleSyncRepeatingTask(KingdomFactionsPlugin.getInstance(),
-				new ScheduledSaveRunnable(), 0, 300L * 20);
-		Bukkit.getScheduler().scheduleAsyncRepeatingTask(KingdomFactionsPlugin.getInstance(), new SaveRunnable(), 0, 20 * 2);
+    @SuppressWarnings("deprecation")
+    public PlayerModule() {
+        setInstance(this);
+        
+        new DeathBanModule();
+        
+        new GodModeRunnable();
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(KingdomFactionsPlugin.getInstance(),
+                new ScheduledSaveRunnable(), 0, 300L * 20);
+        Bukkit.getScheduler().scheduleAsyncRepeatingTask(KingdomFactionsPlugin.getInstance(), new SaveRunnable(), 0, 20 * 2);
 
-		KingdomFactionsPlugin.getInstance().registerListener(new PlayerJoinEventListener());
-		KingdomFactionsPlugin.getInstance().registerListener(new PlayerQuitEventListener());
-		KingdomFactionsPlugin.getInstance().registerListener(new PlayerDeathEventListener());
-		KingdomFactionsPlugin.getInstance().registerListener(new GodModeListener());
-		KingdomFactionsPlugin.getInstance().registerListener(new PvPManager());
-	}
+        KingdomFactionsPlugin.getInstance().registerListener(new PlayerJoinEventListener());
+        KingdomFactionsPlugin.getInstance().registerListener(new PlayerQuitEventListener());
+        KingdomFactionsPlugin.getInstance().registerListener(new PlayerDeathEventListener());
+        KingdomFactionsPlugin.getInstance().registerListener(new GodModeListener());
+        KingdomFactionsPlugin.getInstance().registerListener(new PvPManager());
+    }
 
-	/**
-	 * 
-	 * @param player
-	 * @return KingdomFactionsPlayer
-	 * 
-	 *         get a KingdomFactionsPlayer by the Bukkit Player
-	 */
-	public KingdomFactionsPlayer getPlayer(Player player) {
-		KingdomFactionsPlayer p = null;
-		for (KingdomFactionsPlayer pl : players) {
-			if (pl.getUuid().equals(player.getUniqueId())) {
-				return pl;
-			}
-		}
-		try {
-			p = PlayerDatabase.getInstance().loadPlayer(player.getUniqueId());
-		} catch (UnkownPlayerException e) {
-			PlayerDatabase.getInstance().createPlayer(player.getUniqueId() + "", player.getName(),
-					player.getAddress().getHostString());
-			p = new KingdomFactionsPlayer(FactionRank.SPELER, KingdomRank.SPELER,
-					KingdomModule.getInstance().getKingdom(KingdomType.GEEN), null, player.getName());
-			p.setStatisticsProfile(new StatisticsProfile(p, 0, 0, 0, 0, 0, System.currentTimeMillis()));
-		}
-		this.players.add(p);
-		return p;
-	}
+    /**
+     * General method to get player by name or UUID, reduces code duplication.
+     * @param predicate Predicate to apply for comparison.
+     * @return KingdomFactionsPlayer or null if not found.
+     */
+    private KingdomFactionsPlayer getPlayerByPredicate(java.util.function.Predicate<KingdomFactionsPlayer> predicate) {
+        for (KingdomFactionsPlayer player : players) {
+            if (predicate.test(player)) {
+                return player;
+            }
+        }
+        return null;
+    }
 
-	/**
-	 * 
-	 * @param name
-	 * @return KingdomFactionsPlayer
-	 * @throws UnkownPlayerException
-	 */
-	public IPlayerBase getPlayerBase(String name) throws UnkownPlayerException {
-		for (KingdomFactionsPlayer player : players) {
-			if (player.getName().equalsIgnoreCase(name)) {
-				return player;
-			}
-		}
-		return PlayerDatabase.getInstance().loadOfflinePlayer(name);
-	}
+    /**
+     * Get KingdomFactionsPlayer by player name.
+     * @param name Name of the player.
+     * @return KingdomFactionsPlayer
+     * @throws UnkownPlayerException If the player is not found.
+     */
+    public KingdomFactionsPlayer getPlayer(String name) throws UnkownPlayerException {
+        KingdomFactionsPlayer player = getPlayerByPredicate(p -> p.getName().equalsIgnoreCase(name));
+        if (player == null) {
+            throw new UnkownPlayerException("Player is not online.");
+        }
+        return player;
+    }
 
-	/**
-	 * 
-	 * @param uuid
-	 * @return KingdomFactionsPlayer
-	 * @throws UnkownPlayerException
-	 */
-	public IPlayerBase getPlayerBase(UUID uuid) throws UnkownPlayerException {
-		for (KingdomFactionsPlayer player : players) {
-			if (player.getUuid().equals(uuid)) {
-				return player;
-			}
-		}
-		return PlayerDatabase.getInstance().loadOfflinePlayer(uuid);
-	}
+    /**
+     * Get KingdomFactionsPlayer by UUID.
+     * @param uuid UUID of the player.
+     * @return KingdomFactionsPlayer or null if not found.
+     */
+    public KingdomFactionsPlayer getPlayer(UUID uuid) {
+        return getPlayerByPredicate(p -> p.getUuid().equals(uuid));
+    }
 
-	/**
-	 * 
-	 * @param player
-	 * @return KingdomFactionsPlayer
-	 */
-	public KingdomFactionsPlayer getOnlinePlayer(IPlayerBase player) {
-		if (player instanceof KingdomFactionsPlayer) {
-			return (KingdomFactionsPlayer) player;
-		}
-		return null;
-	}
+    /**
+     * Get KingdomFactionsPlayer from CommandSender.
+     * @param sender CommandSender (usually Player).
+     * @return KingdomFactionsPlayer
+     */
+    public KingdomFactionsPlayer getPlayer(CommandSender sender) {
+        return getPlayer(sender.getName());
+    }
 
-	/**
-	 * 
-	 * @param player
-	 * @return KingdomFactionsPlayer
-	 */
-	public OfflineKingdomFactionsPlayer getOfflinePlayer(IPlayerBase player) {
-		if (player instanceof OfflineKingdomFactionsPlayer) {
-			return (OfflineKingdomFactionsPlayer) player;
-		}
-		return null;
-	}
+    /**
+     * Get player by entity.
+     * @param entity Entity to convert to player.
+     * @return KingdomFactionsPlayer
+     * @throws PlayerException If the entity is not a player.
+     */
+    public KingdomFactionsPlayer getPlayer(Entity entity) throws PlayerException {
+        if (entity instanceof Player) {
+            return getPlayer(((Player) entity).getName());
+        } else {
+            throw new PlayerException("Could not convert this entity to KingdomFactionsPlayer");
+        }
+    }
 
-	/**
-	 * 
-	 * @param name
-	 * @return KingdomFactionsPlayer
-	 * @throws UnkownPlayerException 
-	 */
-	public KingdomFactionsPlayer getPlayer(String name) throws UnkownPlayerException {
-		for (KingdomFactionsPlayer player : players) {
-			if (player.getName().equalsIgnoreCase(name)) {
-				return player;
-			}
-		}
-		throw new UnkownPlayerException("Player is not online.");
-	}
+    /**
+     * Get player by HumanEntity.
+     * @param entity HumanEntity to convert to player.
+     * @return KingdomFactionsPlayer
+     */
+    public KingdomFactionsPlayer getPlayer(HumanEntity entity) {
+        try {
+            return getPlayer(entity.getName());
+        } catch (UnkownPlayerException e) {
+            return null; // This should not happen
+        }
+    }
 
-	/**
-	 * 
-	 * @param sender
-	 * @return KingdomFactionsPlayer
-	 */
-	public KingdomFactionsPlayer getPlayer(CommandSender sender) {
-		for (KingdomFactionsPlayer player : players) {
-			if (player.getName().equalsIgnoreCase(sender.getName())) {
-				return player;
-			}
-		}
-		return null;
-	}
+    /**
+     * Converts KingdomFactionsPlayer to OfflineKingdomFactionsPlayer.
+     * @param player KingdomFactionsPlayer.
+     * @return OfflineKingdomFactionsPlayer
+     */
+    public OfflineKingdomFactionsPlayer convert(KingdomFactionsPlayer player) {
+        return new OfflineKingdomFactionsPlayer(player.getName(), player.getUuid(), player.getIpAdres(), 
+                player.getKingdom(), player.getFaction(), player.getFactionRank(), player.getKingdomRank(),
+                player.getCoins(), player.getStatisticsProfile().getDeaths(), player.getStatisticsProfile().getKills(),
+                player.getStatisticsProfile().getFirstjoin(), player.getStatisticsProfile().getSecondsConnected(), 
+                player.getInfluence(), player.getLocation());
+    }
 
-	public KingdomFactionsPlayer getPlayer(ProjectileSource projSource) throws PlayerException {
-		if(projSource instanceof Player) {
-		Player p = (Player) projSource;
-		return getPlayer(p.getName());
-		} else {
-			throw new PlayerException("ProjectileSource is not a valid Player!");
-		}
-	}
-	/**
-	 * 
-	 * @param uuid
-	 * @return KingdomFactionsPlayer
-	 */
-	public KingdomFactionsPlayer getPlayer(UUID uuid) {
-		for (KingdomFactionsPlayer pl : players) {
-			if (pl.getUuid().equals(uuid)) {
-				return pl;
-			}
-		}
-		return null;
-	}
+    /**
+     * Converts OfflineKingdomFactionsPlayer to KingdomFactionsPlayer.
+     * @param player OfflineKingdomFactionsPlayer.
+     * @return KingdomFactionsPlayer or null if not found.
+     */
+    public KingdomFactionsPlayer convert(OfflineKingdomFactionsPlayer player) {
+        try {
+            return getPlayer(player.getName());
+        } catch (UnkownPlayerException e) {
+            return null; // This should not happen
+        }
+    }
 
-	/**
-	 * 
-	 * @param entity
-	 * @return KingdomFactionsPlayer
-	 * @throws PlayerException
-	 */
-	public KingdomFactionsPlayer getPlayer(Entity e) throws PlayerException {
-		if (e instanceof Player) {
-			return getPlayer(((Player) e).getName());
-		} else {
-			throw new PlayerException("Could not convert this entity to KingdomFactionsPlayer");
-		}
-	}
+    /**
+     * Save all players asynchronously.
+     */
+    public void saveAsync() {
+        for (KingdomFactionsPlayer player : players) {
+            if (!queue.contains(player)) { // Avoid redundant queue entries
+                queue.offer(player);
+            }
+        }
+    }
 
-	public KingdomFactionsPlayer getPlayer(HumanEntity e) {
-		try {
-			return getPlayer(e.getName());
-		} catch (UnkownPlayerException e1) {
-			return null; //Can't happen
-		}
-	}
+    /**
+     * Retrieves a player from PlayerDatabase by UUID and name.
+     * @param player Player object.
+     * @return KingdomFactionsPlayer
+     */
+    public KingdomFactionsPlayer getPlayer(Player player) {
+        KingdomFactionsPlayer p = getPlayerByPredicate(pl -> pl.getUuid().equals(player.getUniqueId()));
+        if (p == null) {
+            try {
+                p = PlayerDatabase.getInstance().loadPlayer(player.getUniqueId());
+            } catch (UnkownPlayerException e) {
+                KingdomFactionsPlugin.getInstance().getLogger().warning("Failed to load player with UUID: " + player.getUniqueId());
+                PlayerDatabase.getInstance().createPlayer(player.getUniqueId() + "", player.getName(), player.getAddress().getHostString());
+                p = new KingdomFactionsPlayer(FactionRank.SPELER, KingdomRank.SPELER,
+                        KingdomModule.getInstance().getKingdom(KingdomType.GEEN), null, player.getName());
+                p.setStatisticsProfile(new StatisticsProfile(p, 0, 0, 0, 0, 0, System.currentTimeMillis()));
+            }
+            this.players.add(p);
+        }
+        return p;
+    }
 
-	public void saveAsync() {
-		for (KingdomFactionsPlayer player : players) {
-			this.queue.offer(player);
-		}
-	}
+    /**
+     * Get IPlayerBase by name.
+     * @param name Player's name.
+     * @return IPlayerBase
+     * @throws UnkownPlayerException If the player is not found.
+     */
+    public IPlayerBase getPlayerBase(String name) throws UnkownPlayerException {
+        KingdomFactionsPlayer player = getPlayer(name);
+        if (player != null) {
+            return player;
+        } else {
+            return PlayerDatabase.getInstance().loadOfflinePlayer(name);
+        }
+    }
 
-	public KingdomFactionsPlayer convert(OfflineKingdomFactionsPlayer player) {
-		try {
-			return getPlayer(player.getName());
-		} catch (UnkownPlayerException e) {
-			return null; //Can't happen
-		}
-	}
-
-	public OfflineKingdomFactionsPlayer convert(KingdomFactionsPlayer player) {
-		return new OfflineKingdomFactionsPlayer(player.getName(), 
-				player.getUuid(), 
-				player.getIpAdres(), 
-				player.getKingdom(), 
-				player.getFaction(), 
-				player.getFactionRank(), 
-				player.getKingdomRank(), 
-				player.getCoins(), 
-				player.getStatisticsProfile().getDeaths(), 
-				player.getStatisticsProfile().getKills(), 
-				player.getStatisticsProfile().getFirstjoin(), 
-				player.getStatisticsProfile().getSecondsConnected(), 
-				player.getInfluence(), 
-				player.getLocation());
-		
-	}
-	
+    /**
+     * Get IPlayerBase by UUID.
+     * @param uuid Player's UUID.
+     * @return IPlayerBase
+     * @throws UnkownPlayerException If the player is not found.
+     */
+    public IPlayerBase getPlayerBase(UUID uuid) throws UnkownPlayerException {
+        KingdomFactionsPlayer player = getPlayer(uuid);
+        if (player != null) {
+            return player;
+        } else {
+            return PlayerDatabase.getInstance().loadOfflinePlayer(uuid);
+        }
+    }
 }

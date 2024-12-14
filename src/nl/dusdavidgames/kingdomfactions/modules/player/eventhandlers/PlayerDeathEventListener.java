@@ -20,71 +20,59 @@ public class PlayerDeathEventListener implements Listener {
 
 	@EventHandler
 	public void onDeath(PlayerDeathEvent e) {
-
-
 		KingdomFactionsPlayer player = PlayerModule.getInstance().getPlayer(e.getEntity());
-
-		
 		e.setKeepInventory(false);
-		
-		 if(player.getKingdom().getType().equals(KingdomType.GEEN)) {
-			   player.getInventory().clear();
-			   player.getInventory().addItem(Item.getInstance().getItem(Material.COMPASS, ChatColor.RED + "Selecteer jouw kingdom", 1));
-			   player.updateInventory();
-			   player.teleport(player.getKingdom().getSpawn());
-		   }
 
+		// Handle players without kingdom (KingdomType.GEEN)
+		if (player.getKingdom().getType().equals(KingdomType.GEEN)) {
+			player.getInventory().clear();
+			player.getInventory().addItem(Item.getInstance().getItem(Material.COMPASS, ChatColor.RED + "Selecteer jouw kingdom", 1));
+			player.updateInventory();
+			player.teleport(player.getKingdom().getSpawn());
+		}
+
+		// Handle killer if present
 		if (e.getEntity().getKiller() != null) {
 			KingdomFactionsPlayer killer = PlayerModule.getInstance().getPlayer(e.getEntity().getKiller());
-				e.setDeathMessage(getName(player) + " is verwond door " + getName(killer) + "!");
-				if(player.getCombatTracker().isInCombat()) {
-					player.getCombatTracker().clearCombat();
+			e.setDeathMessage(getFormattedName(player) + " is verwond door " + getFormattedName(killer) + "!");
+			if (player.getCombatTracker().isInCombat()) {
+				player.getCombatTracker().clearCombat();
+			}
+			// Handle deathban with a delayed task
+			Bukkit.getScheduler().runTaskLater(KingdomFactionsPlugin.getInstance(), () -> {
+				if (!player.hasPermission("kingdomfactions.deathban.ignore") && Setting.USE_DEATHBAN.isEnabled()) {
+					DeathBanModule.getInstance().ban(player);
 				}
-              Bukkit.getScheduler().runTaskLater(KingdomFactionsPlugin.getInstance(), new Runnable() {
-				@Override
-				public void run() {
-					if(!player.hasPermission("kingdomfactions.deathban.ignore")) {
-						if(Setting.USE_DEATHBAN.isEnabled()) {
-						DeathBanModule.getInstance().ban(player);
-						}
-					}
-					
-				}
-			}, 40L);
-			
+			}, 40L); // Delay of 2 seconds before banning the player
 		} else {
 			e.setDeathMessage(null);
 		}
-	//	e.getEntity().spigot().respawn();
 	}
 
 	@EventHandler
 	public void onRespawn(PlayerRespawnEvent e) {
 		KingdomFactionsPlayer p = PlayerModule.getInstance().getPlayer(e.getPlayer());
-		Bukkit.getScheduler().runTaskLater(KingdomFactionsPlugin.getInstance(), new Runnable(){
-			@Override
-			public void run(){
-	     
-				if (p.getKingdom() != null) {
-					if (p.hasFaction()) {
-						if (p.getFaction().hasHome()) {
-							p.teleport(p.getFaction().getHome().getLocation());
-						} else {
-							p.teleport(p.getKingdom().getSpawn());
-						}
+		Bukkit.getScheduler().runTaskLater(KingdomFactionsPlugin.getInstance(), () -> {
+			if (p.getKingdom() != null) {
+				if (p.hasFaction()) {
+					// Teleport to faction home or kingdom spawn
+					if (p.getFaction().hasHome()) {
+						p.teleport(p.getFaction().getHome().getLocation());
 					} else {
 						p.teleport(p.getKingdom().getSpawn());
 					}
+				} else {
+					p.teleport(p.getKingdom().getSpawn());
 				}
 			}
-		}, 20);
+		}, 20); // Delay of 1 second before teleportation
 	}
-	
-	
-	private String getName(KingdomFactionsPlayer player) {
+
+	// A more descriptive method name and string formatting
+	private String getFormattedName(KingdomFactionsPlayer player) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(player.getKingdom().getType().getPrefix());
-		if(player.hasFaction()) {
+		if (player.hasFaction()) {
 			builder.append(player.getFaction().getPrefix());
 		}
 		builder.append(player.getName());

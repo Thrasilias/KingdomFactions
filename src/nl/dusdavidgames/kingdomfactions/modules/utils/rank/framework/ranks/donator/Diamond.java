@@ -7,7 +7,7 @@ public class Diamond extends Donator {
 	@Override
 	public String getName() {
 		// TODO Auto-generated method stub
-		return null;
+		return "Diamond";
 	}
 
 }
